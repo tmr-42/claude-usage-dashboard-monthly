@@ -1,0 +1,618 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Claude Usage Analysis — April 2026 (Monthly)</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet" />
+<style>
+  :root {
+    --bg: #f7f7fb;
+    --card: #ffffff;
+    --border: #e6e6ef;
+    --border-light: #d8d8e3;
+    --text: #1a1a2e;
+    --text-muted: #5a5a72;
+    --text-dim: #8a8aa0;
+    --accent: #4f46e5;
+    --accent-glow: rgba(79,70,229,0.10);
+    --red: #dc2626;
+    --red-glow: rgba(220,38,38,0.10);
+    --orange: #ea580c;
+    --orange-glow: rgba(234,88,12,0.10);
+    --green: #16a34a;
+    --green-glow: rgba(22,163,74,0.10);
+    --purple: #9333ea;
+    --purple-glow: rgba(147,51,234,0.10);
+    --cyan: #0891b2;
+    --shadow: 0 1px 2px rgba(0,0,0,0.04);
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; }
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+    min-height: 100vh;
+    -webkit-font-smoothing: antialiased;
+  }
+  .mono { font-family: 'JetBrains Mono', monospace; }
+  .header {
+    background: var(--card);
+    border-bottom: 1px solid var(--border);
+    padding: 24px 24px 0;
+  }
+  .header-title { display: flex; align-items: baseline; gap: 12px; margin-bottom: 4px; }
+  h1 { font-size: 22px; font-weight: 800; margin: 0; letter-spacing: -0.03em; }
+  .period { font-size: 13px; color: var(--text-muted); font-family: 'JetBrains Mono', monospace; }
+  .period-badge {
+    font-size: 10px; font-weight: 700; padding: 3px 8px; border-radius: 6px;
+    background: var(--accent-glow); color: var(--accent);
+    text-transform: uppercase; letter-spacing: 0.06em;
+  }
+  .tabs { display: flex; gap: 0; margin-top: 16px; }
+  .tab {
+    background: none; border: none; color: var(--text-muted);
+    font-size: 13px; font-weight: 600; padding: 8px 16px; cursor: pointer;
+    border-bottom: 2px solid transparent; transition: all 0.2s;
+    margin-bottom: -1px; font-family: inherit;
+  }
+  .tab.active { color: var(--accent); border-bottom-color: var(--accent); }
+  .tab-badge {
+    background: var(--red-glow); color: var(--red);
+    font-size: 10px; font-weight: 700; padding: 1px 6px;
+    border-radius: 8px; margin-left: 6px;
+  }
+  .container { padding: 24px; max-width: 1100px; }
+  .stat-row { display: flex; gap: 12px; margin-bottom: 20px; flex-wrap: wrap; }
+  .stat-card {
+    background: var(--card); border: 1px solid var(--border); border-radius: 10px;
+    padding: 16px 20px; flex: 1 1 0; min-width: 200px; box-shadow: var(--shadow);
+  }
+  .stat-label {
+    font-size: 11px; text-transform: uppercase; letter-spacing: 0.08em;
+    color: var(--text-muted); margin-bottom: 6px; font-weight: 500;
+  }
+  .stat-value {
+    font-size: 26px; font-weight: 700; letter-spacing: -0.02em;
+    font-family: 'JetBrains Mono', monospace;
+  }
+  .stat-sub { font-size: 12px; color: var(--text-dim); margin-top: 4px; }
+  .panel {
+    background: var(--card); border: 1px solid var(--border); border-radius: 10px;
+    padding: 18px; margin-bottom: 20px; box-shadow: var(--shadow);
+  }
+  .panel-title { font-size: 13px; font-weight: 600; margin-bottom: 14px; }
+  .row {
+    display: flex; align-items: center; gap: 12px; margin-bottom: 8px;
+  }
+  .bar {
+    width: 100%; height: 6px; border-radius: 3px;
+    background: var(--border); overflow: hidden;
+  }
+  .bar-fill { height: 100%; border-radius: 3px; transition: width 0.4s ease; }
+  .leaderboard-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  .leaderboard-table th {
+    padding: 10px 14px; text-align: left; font-size: 11px; color: var(--text-muted);
+    font-weight: 600; text-transform: uppercase; letter-spacing: 0.06em;
+    background: var(--bg); border-bottom: 1px solid var(--border);
+  }
+  .leaderboard-table td {
+    padding: 10px 14px; border-bottom: 1px solid var(--border);
+  }
+  .leaderboard-table tr.flagged { background: var(--red-glow); }
+  .model-bar {
+    display: flex; gap: 2px; height: 8px; border-radius: 4px;
+    overflow: hidden; width: 100%;
+  }
+  .flag-card {
+    background: var(--card); border: 1px solid var(--border); border-radius: 10px;
+    overflow: hidden; margin-bottom: 16px; box-shadow: var(--shadow);
+  }
+  .flag-header {
+    display: flex; align-items: center; gap: 10px;
+    padding: 14px 18px; cursor: pointer; user-select: none;
+  }
+  .flag-title { font-weight: 600; font-size: 14px; flex: 1; }
+  .flag-count {
+    font-size: 12px; font-weight: 700; padding: 3px 10px; border-radius: 12px;
+  }
+  .flag-row {
+    display: flex; align-items: center; gap: 12px;
+    padding: 10px 18px; border-bottom: 1px solid var(--border); font-size: 13px;
+  }
+  .flag-row:last-child { border-bottom: none; }
+  .badge {
+    font-size: 11px; font-weight: 700; padding: 2px 8px; border-radius: 8px;
+  }
+  .legend { padding: 12px; display: flex; gap: 16px; justify-content: center;
+    border-top: 1px solid var(--border); background: var(--bg); }
+  .legend-item { display: flex; align-items: center; gap: 6px;
+    font-size: 11px; color: var(--text-muted); }
+  .legend-swatch { width: 10px; height: 10px; border-radius: 2px; display: inline-block; }
+  .breakdown-grid {
+    display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 20px;
+  }
+  @media (max-width: 700px) {
+    .breakdown-grid { grid-template-columns: 1fr; }
+    .container { padding: 16px; }
+  }
+  .cpr-grid {
+    display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+    gap: 12px;
+  }
+  .cpr-card {
+    background: var(--bg); border: 1px solid var(--border);
+    border-radius: 8px; padding: 14px; text-align: center;
+  }
+  .draft-card {
+    background: var(--card); border: 1px solid var(--border); border-radius: 10px;
+    padding: 16px; margin-bottom: 12px; box-shadow: var(--shadow);
+  }
+  .draft-header {
+    display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;
+  }
+  .draft-name { font-weight: 600; font-size: 14px; }
+  .draft-email { color: var(--text-dim); font-size: 12px; margin-left: 8px; }
+  .draft-message {
+    background: #f4f4f9; border-radius: 8px; padding: 14px;
+    font-size: 13px; line-height: 1.6;
+    white-space: pre-wrap; font-family: 'JetBrains Mono', monospace;
+    border: 1px solid var(--border);
+  }
+  .channel-summary {
+    background: #f4f4f9; border-radius: 8px; padding: 16px;
+    font-size: 12px; line-height: 1.7;
+    white-space: pre-wrap; font-family: 'JetBrains Mono', monospace;
+    border: 1px solid var(--border); max-height: 320px; overflow: auto;
+  }
+  .btn {
+    background: var(--accent); color: #fff; border: none; border-radius: 6px;
+    padding: 7px 16px; font-size: 12px; font-weight: 600; cursor: pointer;
+    font-family: inherit; transition: all 0.2s;
+  }
+  .btn:hover { opacity: 0.9; }
+  .btn-lg { padding: 8px 18px; font-size: 13px; }
+  .copy-note {
+    background: var(--accent-glow); border: 1px solid var(--accent);
+    border-radius: 8px; padding: 12px 14px; font-size: 12px; color: var(--text);
+    margin-bottom: 16px; line-height: 1.5;
+  }
+  [hidden] { display: none !important; }
+</style>
+</head>
+<body>
+<div class="header">
+  <div class="header-title">
+    <h1>Claude Usage Analysis</h1>
+    <span class="period" id="period">Loading…</span>
+    <span class="period-badge">Monthly</span>
+  </div>
+  <div class="tabs" id="tabs"></div>
+</div>
+<div class="container" id="container"></div>
+
+<script>
+let DATA = null;
+let activeTab = 'overview';
+
+const TABS = [
+  { id: 'overview', label: 'Overview' },
+  { id: 'leaderboard', label: 'Leaderboard' },
+  { id: 'flags', label: 'Flags & Alerts' },
+  { id: 'breakdown', label: 'Breakdowns' },
+  { id: 'actions', label: 'Slack Actions' },
+];
+
+const fmt = n => '$' + Number(n).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+const fmtK = n => n >= 1000000 ? (n/1000000).toFixed(1) + 'M' : n >= 1000 ? (n/1000).toFixed(0) + 'K' : String(n);
+const esc = s => String(s).replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+
+function bar(value, max, color) {
+  const pct = max > 0 ? Math.min((value / max) * 100, 100) : 0;
+  return `<div class="bar"><div class="bar-fill" style="width:${pct}%;background:${color};"></div></div>`;
+}
+
+function modelBar(models) {
+  const total = (models.opus || 0) + (models.sonnet || 0) + (models.haiku || 0);
+  if (total === 0) return '';
+  const opus = ((models.opus || 0) / total) * 100;
+  const sonnet = ((models.sonnet || 0) / total) * 100;
+  const haiku = ((models.haiku || 0) / total) * 100;
+  let html = '<div class="model-bar">';
+  if (opus > 0) html += `<div style="width:${opus}%;background:var(--red);min-width:2px;" title="Opus ${opus.toFixed(0)}%"></div>`;
+  if (sonnet > 0) html += `<div style="width:${sonnet}%;background:var(--accent);min-width:2px;" title="Sonnet ${sonnet.toFixed(0)}%"></div>`;
+  if (haiku > 0) html += `<div style="width:${haiku}%;background:var(--green);min-width:2px;" title="Haiku ${haiku.toFixed(0)}%"></div>`;
+  html += '</div>';
+  return html;
+}
+
+function renderTabs() {
+  const flagCount = DATA.maxPlan.length + DATA.opusHeavy.filter(u => u.opusSpend >= 20).length + DATA.coworkOpus.length;
+  document.getElementById('tabs').innerHTML = TABS.map(t =>
+    `<button class="tab ${activeTab === t.id ? 'active' : ''}" data-tab="${t.id}">${t.label}${t.id === 'flags' ? `<span class="tab-badge">${flagCount}</span>` : ''}</button>`
+  ).join('');
+  document.querySelectorAll('[data-tab]').forEach(el => {
+    el.onclick = () => { activeTab = el.dataset.tab; render(); };
+  });
+}
+
+function renderOverview() {
+  const flagCount = DATA.maxPlan.length + DATA.opusHeavy.filter(u => u.opusSpend >= 20).length + DATA.coworkOpus.length + DATA.tokenDensity.filter(u => u.spend >= 30).length;
+  let html = '<div class="stat-row">' +
+    `<div class="stat-card"><div class="stat-label">Total Org Spend</div><div class="stat-value">${fmt(DATA.summary.totalSpend)}</div><div class="stat-sub">April 2026 (full month)</div></div>` +
+    `<div class="stat-card"><div class="stat-label">Active Users</div><div class="stat-value">${DATA.summary.activeUsers}</div><div class="stat-sub">${fmt(DATA.summary.avgSpend)} avg/user</div></div>` +
+    `<div class="stat-card"><div class="stat-label">Top 10 Concentration</div><div class="stat-value" style="color:var(--orange);">${DATA.summary.top10Pct}%</div><div class="stat-sub">${fmt(DATA.summary.top10Spend)}</div></div>` +
+    `<div class="stat-card"><div class="stat-label">Flags Raised</div><div class="stat-value" style="color:var(--red);">${flagCount}</div><div class="stat-sub">Action items</div></div>` +
+  '</div>';
+
+  // Models
+  html += '<div class="panel"><div class="panel-title">Model Spend Distribution</div>';
+  DATA.models.forEach(m => {
+    const pct = (m.spend / DATA.summary.totalSpend * 100);
+    const color = m.name.includes('opus') ? 'var(--red)' : m.name.includes('sonnet') ? 'var(--accent)' : 'var(--green)';
+    const label = m.name.replace(/^claude_/, '').replace(/_/g, ' ');
+    html += `<div class="row">
+      <div style="width:140px;font-size:12px;font-family:'JetBrains Mono',monospace;color:var(--text-muted);">${esc(label)}</div>
+      <div style="flex:1;">${bar(m.spend, DATA.models[0].spend, color)}</div>
+      <div style="width:80px;text-align:right;font-size:12px;font-family:'JetBrains Mono',monospace;color:${color};">${fmt(m.spend)}</div>
+      <div style="width:40px;text-align:right;font-size:11px;color:var(--text-dim);">${pct.toFixed(0)}%</div>
+    </div>`;
+  });
+  html += '</div>';
+
+  // Products
+  html += '<div class="panel"><div class="panel-title">Product Surface Breakdown</div>';
+  DATA.products.forEach(p => {
+    const pct = (p.spend / DATA.summary.totalSpend * 100);
+    html += `<div class="row">
+      <div style="width:140px;font-size:12px;color:var(--text-muted);">${esc(p.name)}</div>
+      <div style="flex:1;">${bar(p.spend, DATA.products[0].spend, 'var(--cyan)')}</div>
+      <div style="width:80px;text-align:right;font-size:12px;font-family:'JetBrains Mono',monospace;">${fmt(p.spend)}</div>
+      <div style="width:80px;text-align:right;font-size:11px;color:var(--text-dim);">${p.requests.toLocaleString()} reqs</div>
+      <div style="width:40px;text-align:right;font-size:11px;color:var(--text-dim);">${pct.toFixed(0)}%</div>
+    </div>`;
+  });
+  html += '</div>';
+
+  // Power users
+  html += '<div class="panel"><div style="font-size:13px;font-weight:600;color:var(--green);margin-bottom:4px;">⚡ Power Users — Org Efficiency Benchmarks</div>';
+  html += '<div style="font-size:11px;color:var(--text-dim);margin-bottom:14px;">High volume, Sonnet/Haiku dominant, low cost-per-request</div>';
+  DATA.powerUsers.forEach((u, i) => {
+    const last = i === DATA.powerUsers.length - 1;
+    html += `<div style="display:flex;align-items:center;gap:12px;padding:8px 0;${!last ? 'border-bottom:1px solid var(--border);' : ''}">
+      <span style="width:22px;font-size:12px;color:var(--text-dim);text-align:center;">${i+1}</span>
+      <span style="flex:1;font-size:13px;font-weight:500;">${esc(u.name)}</span>
+      <span style="font-size:12px;color:var(--green);font-family:'JetBrains Mono',monospace;width:90px;text-align:right;">${u.requests.toLocaleString()} reqs</span>
+      <span style="font-size:12px;color:var(--text-muted);font-family:'JetBrains Mono',monospace;width:80px;text-align:right;">${fmt(u.spend)}</span>
+      <span style="font-size:12px;color:var(--green);font-family:'JetBrains Mono',monospace;width:70px;text-align:right;">${fmt(u.cpr)}/req</span>
+    </div>`;
+  });
+  html += '</div>';
+  return html;
+}
+
+function renderLeaderboard() {
+  let html = '<div class="panel" style="padding:0;overflow:hidden;">';
+  html += '<div style="padding:14px 18px;border-bottom:1px solid var(--border);font-size:13px;font-weight:600;">Top 30 Spenders — April 2026</div>';
+  html += '<div style="overflow-x:auto;"><table class="leaderboard-table"><thead><tr>';
+  ['#','User','Spend','Requests','$/Req','Model Mix','Top Product'].forEach(h => html += `<th>${h}</th>`);
+  html += '</tr></thead><tbody>';
+  DATA.leaderboard.forEach((u, i) => {
+    const products = Object.entries(u.products).sort((a,b) => b[1] - a[1]);
+    const top = products[0];
+    const flagged = u.spend >= 400;
+    const spendColor = u.spend >= 500 ? 'var(--red)' : u.spend >= 250 ? 'var(--orange)' : 'var(--text)';
+    const cprColor = u.cpr > 0.5 ? 'var(--orange)' : 'var(--text-muted)';
+    html += `<tr class="${flagged ? 'flagged' : ''}">
+      <td style="color:var(--text-dim);width:30px;">${i+1}</td>
+      <td><div style="font-weight:500;">${esc(u.name)}</div><div style="font-size:11px;color:var(--text-dim);">${esc(u.email.split('@')[0])}</div></td>
+      <td class="mono" style="font-weight:600;color:${spendColor};">${fmt(u.spend)}</td>
+      <td class="mono" style="color:var(--text-muted);">${u.requests.toLocaleString()}</td>
+      <td class="mono" style="color:${cprColor};">${fmt(u.cpr)}</td>
+      <td style="width:120px;">${modelBar(u.models)}<div style="font-size:10px;color:var(--text-dim);margin-top:3px;">${u.opusPct > 0 ? `<span style="color:var(--red);">${u.opusPct}% Opus</span>` : ''}</div></td>
+      <td style="font-size:12px;color:var(--text-muted);">${top ? esc(top[0]) + ' (' + fmt(top[1]) + ')' : '—'}</td>
+    </tr>`;
+  });
+  html += '</tbody></table></div>';
+  html += '<div class="legend">';
+  html += '<span class="legend-item"><span class="legend-swatch" style="background:var(--red);"></span> Opus</span>';
+  html += '<span class="legend-item"><span class="legend-swatch" style="background:var(--accent);"></span> Sonnet</span>';
+  html += '<span class="legend-item"><span class="legend-swatch" style="background:var(--green);"></span> Haiku</span>';
+  html += '</div></div>';
+  return html;
+}
+
+function flagCard(icon, title, count, color, glow, description, rows) {
+  return `<div class="flag-card">
+    <div class="flag-header" onclick="this.nextElementSibling.hidden = !this.nextElementSibling.hidden;">
+      <span style="font-size:18px;">${icon}</span>
+      <span class="flag-title">${title}</span>
+      <span class="flag-count" style="background:${glow};color:${color};">${count}</span>
+      <span style="color:var(--text-dim);font-size:14px;">▾</span>
+    </div>
+    <div>
+      <div style="padding:14px;font-size:12px;color:var(--text-muted);border-bottom:1px solid var(--border);border-top:1px solid var(--border);">${description}</div>
+      ${rows}
+    </div>
+  </div>`;
+}
+
+function renderFlags() {
+  let html = '';
+
+  // Max Plan
+  let rows = DATA.maxPlan.map(u => `<div class="flag-row">
+    <span style="flex:1;font-weight:500;">${esc(u.name)}</span>
+    <span class="mono" style="color:var(--red);font-weight:600;">${fmt(u.monthlySpend)}/mo</span>
+    <span class="mono" style="font-size:12px;color:var(--text-dim);">~${fmt(u.avgWeekly)}/wk avg</span>
+  </div>`).join('');
+  html += flagCard('🔴', 'Max Plan Candidates (Approaching $800/mo)', DATA.maxPlan.length, 'var(--red)', 'var(--red-glow)',
+    'Monthly spend $400+ in April. Nobody crossed the confirmed Max Plan threshold ($800+/mo), but these users are trending toward it. Use-case assessment recommended.', rows);
+
+  // Cowork + Opus
+  rows = DATA.coworkOpus.map(u => `<div class="flag-row">
+    <span style="flex:1;font-weight:500;">${esc(u.name)}</span>
+    <span class="mono" style="color:var(--orange);font-weight:600;">${fmt(u.spend)}</span>
+    <span style="font-size:12px;color:var(--text-dim);">${u.requests.toLocaleString()} reqs</span>
+    <span class="mono" style="font-size:11px;color:var(--text-dim);">${esc(u.model.replace(/_/g, ' '))}</span>
+  </div>`).join('');
+  html += flagCard('🟠', 'Cowork → Opus (Automated Routing)', DATA.coworkOpus.length, 'var(--orange)', 'var(--orange-glow)',
+    'Highest-priority cost control. No human selected Opus — Cowork routed automatically.', rows);
+
+  // Opus Heavy
+  const opusHeavy = DATA.opusHeavy.filter(u => u.opusSpend >= 20);
+  rows = opusHeavy.map(u => `<div class="flag-row">
+    <span style="flex:1;font-weight:500;">${esc(u.name)}</span>
+    <span class="mono" style="font-size:12px;color:var(--purple);">${fmt(u.opusSpend)} Opus</span>
+    <span style="font-size:11px;color:var(--text-dim);">/ ${fmt(u.chatSpend)} Chat</span>
+    <span class="badge" style="background:var(--purple-glow);color:var(--purple);">${u.opusPct}%</span>
+  </div>`).join('');
+  html += flagCard('🟣', 'Opus-Heavy Chat Users (≥30%)', opusHeavy.length, 'var(--purple)', 'var(--purple-glow)',
+    '≥30% of Chat spend on Opus models. Excludes Code (separate conversation). Showing users with ≥$20 Opus Chat spend.', rows);
+
+  // Token Density
+  rows = DATA.tokenDensity.slice(0, 20).map(u => `<div class="flag-row">
+    <span style="flex:1;font-weight:500;">${esc(u.name)}</span>
+    <span class="mono" style="font-size:12px;color:var(--orange);">${fmtK(u.avgPromptTokens)} avg</span>
+    <span style="font-size:11px;color:var(--text-dim);">${u.requests.toLocaleString()} reqs</span>
+    <span class="mono" style="font-size:12px;color:var(--text-muted);">${fmt(u.spend)}</span>
+  </div>`).join('');
+  html += flagCard('📐', 'High Token Density (>500K avg prompt)', DATA.tokenDensity.length, 'var(--orange)', 'var(--orange-glow)',
+    'Prompt architecture issue — not a model problem. Large context windows driving cost.', rows);
+
+  // Legacy
+  rows = DATA.legacyModels.map(u => `<div class="flag-row">
+    <span style="flex:1;font-weight:500;">${esc(u.name)}</span>
+    <span class="mono" style="font-size:11px;color:var(--text-dim);">${esc(u.models.map(m => m.replace(/^claude_/, '').replace(/_/g, ' ')).join(', '))}</span>
+    <span class="mono" style="font-size:12px;color:var(--text-muted);">${fmt(u.spend)}</span>
+  </div>`).join('');
+  html += flagCard('⚠️', 'Legacy Model Usage', DATA.legacyModels.length, 'var(--orange)', 'var(--orange-glow)',
+    'Deprecated model versions (4.5 and older). Should migrate to current Sonnet 4.6 / Opus 4.7.', rows);
+
+  return html;
+}
+
+function renderBreakdown() {
+  let html = '<div class="breakdown-grid">';
+  html += '<div class="panel"><div class="panel-title">Model Breakdown</div>';
+  DATA.models.forEach(m => {
+    const color = m.name.includes('opus') ? 'var(--red)' : m.name.includes('sonnet') ? 'var(--accent)' : 'var(--green)';
+    const label = m.name.replace(/^claude_/, '').replace(/_/g, ' ');
+    const pct = (m.spend / DATA.summary.totalSpend * 100);
+    html += `<div style="margin-bottom:12px;">
+      <div style="display:flex;justify-content:space-between;margin-bottom:4px;">
+        <span style="font-size:12px;color:var(--text-muted);">${esc(label)}</span>
+        <span style="font-size:12px;font-family:'JetBrains Mono',monospace;color:${color};">${fmt(m.spend)} (${pct.toFixed(1)}%)</span>
+      </div>
+      ${bar(m.spend, DATA.models[0].spend, color)}
+      <div style="font-size:11px;color:var(--text-dim);margin-top:2px;">${m.requests.toLocaleString()} requests</div>
+    </div>`;
+  });
+  html += '</div>';
+
+  html += '<div class="panel"><div class="panel-title">Product Surface Breakdown</div>';
+  DATA.products.forEach(p => {
+    const pct = (p.spend / DATA.summary.totalSpend * 100);
+    html += `<div style="margin-bottom:12px;">
+      <div style="display:flex;justify-content:space-between;margin-bottom:4px;">
+        <span style="font-size:12px;color:var(--text-muted);">${esc(p.name)}</span>
+        <span style="font-size:12px;font-family:'JetBrains Mono',monospace;color:var(--cyan);">${fmt(p.spend)} (${pct.toFixed(1)}%)</span>
+      </div>
+      ${bar(p.spend, DATA.products[0].spend, 'var(--cyan)')}
+      <div style="font-size:11px;color:var(--text-dim);margin-top:2px;">${p.requests.toLocaleString()} requests • ${fmt(p.spend / p.requests)}/req avg</div>
+    </div>`;
+  });
+  html += '</div></div>';
+
+  html += '<div class="panel"><div class="panel-title">Cost Per Request by Product</div><div class="cpr-grid">';
+  DATA.products.forEach(p => {
+    const cpr = p.spend / p.requests;
+    const color = cpr > 0.3 ? 'var(--orange)' : 'var(--text)';
+    html += `<div class="cpr-card">
+      <div style="font-size:11px;color:var(--text-muted);margin-bottom:6px;">${esc(p.name)}</div>
+      <div style="font-size:20px;font-weight:700;font-family:'JetBrains Mono',monospace;color:${color};">${fmt(cpr)}</div>
+      <div style="font-size:10px;color:var(--text-dim);">per request</div>
+    </div>`;
+  });
+  html += '</div></div>';
+  return html;
+}
+
+function generateMaxPlanMsg(u) {
+  return `Hey ${u.name.split(' ')[0]} — quick note on your April Claude usage. Your monthly spend was ${fmt(u.monthlySpend)} (avg ~${fmt(u.avgWeekly)}/week). That's approaching the threshold where a Max plan starts to make sense, but before we go that route I want to understand what you're working on.
+
+A couple of questions:
+1. What's the primary use case driving your volume — is it a specific project or steady-state workflow?
+2. Are you intentionally selecting Opus for certain tasks, or is it your default model?
+3. Would shifting some work to Sonnet impact your output quality?
+
+No wrong answers here — just want to make sure we're matching cost to value.`;
+}
+
+function generateOpusMsg(u) {
+  return `Hey ${u.name.split(' ')[0]} — noticed your April Chat usage: ${fmt(u.opusSpend)} of your ${fmt(u.chatSpend)} Chat spend (${u.opusPct}%) went to Opus models.
+
+Quick questions so I can help optimize:
+1. Is Opus your intentional choice for specific tasks (complex analysis, code review, etc.), or is it set as your default?
+2. Have you tried running similar tasks on Sonnet to compare quality? For most Chat workflows, Sonnet 4.6 performs comparably at ~3x lower cost.
+3. What types of tasks are you typically using Chat for?
+
+This isn't about restricting access — it's about making sure you're getting value where Opus matters and saving cost where it doesn't.`;
+}
+
+function generateCoworkMsg(u) {
+  return `Hey ${u.name.split(' ')[0]} — flagging a Cowork routing pattern from April. Your Cowork usage routed ${u.requests} requests to ${u.model.replace(/_/g, ' ')} at ${fmt(u.spend)}. Since Cowork selects models automatically, no human made that model choice — and Opus is significantly more expensive than Sonnet for automated tasks.
+
+Can you help me understand:
+1. What Cowork workflows are you running? (This helps us determine if Opus routing is justified or a misconfiguration.)
+2. Have you noticed quality differences when Cowork uses Sonnet vs. Opus for these tasks?
+
+This is the highest-priority cost item because it's automated spend — I want to make sure the routing is intentional.`;
+}
+
+function generateTokenMsg(u) {
+  return `Hey ${u.name.split(' ')[0]} — your April Claude usage averaged ${fmtK(u.avgPromptTokens)} prompt tokens per request across ${u.requests} requests (${fmt(u.spend)} total). That's well above the org average and suggests very large context windows per conversation.
+
+A couple things I'd like to explore:
+1. Are you uploading large documents or pasting long text blocks into conversations? If so, there may be ways to break those into smaller chunks for better results and lower cost.
+2. Are you using long-running conversations where the context keeps growing? Starting fresh conversations for new topics can significantly reduce token usage.
+
+This is about prompt architecture, not model choice — small changes here can meaningfully reduce spend without changing your workflow.`;
+}
+
+function generateLegacyMsg(u) {
+  return `Hey ${u.name.split(' ')[0]} — noticed some of your April Claude usage ran on legacy model versions (${u.models.map(m => m.replace(/_/g, ' ')).join(', ')}). These older models are deprecated, and the current versions (Sonnet 4.6, Opus 4.7) offer better performance.
+
+Quick ask:
+1. Is there a reason you're pinned to older versions — a specific project dependency or integration?
+2. If not, can you update your model selection to the current versions? It should be a straight upgrade in quality.
+
+Happy to help with migration if anything is blocking the switch.`;
+}
+
+function generateChannelSummary() {
+  const opusTotal = DATA.models.filter(m => m.name.includes('opus')).reduce((s, m) => s + m.spend, 0);
+  const sonnetTotal = DATA.models.filter(m => m.name.includes('sonnet')).reduce((s, m) => s + m.spend, 0);
+  return `*Claude Utilization Report — ${DATA.summary.period} (Monthly)*
+
+*Spend Summary*
+• Total org spend: ${fmt(DATA.summary.totalSpend)}
+• Active users: ${DATA.summary.activeUsers}
+• Avg spend/user: ${fmt(DATA.summary.avgSpend)}
+• Top 10 users = ${fmt(DATA.summary.top10Spend)} (${DATA.summary.top10Pct}% of total)
+
+*Model Mix*
+• Sonnet: ${fmt(sonnetTotal)} (${(sonnetTotal / DATA.summary.totalSpend * 100).toFixed(0)}%)
+• Opus: ${fmt(opusTotal)} (${(opusTotal / DATA.summary.totalSpend * 100).toFixed(0)}%)
+
+*Flags This Month*
+• Max plan candidates ($400+/mo): ${DATA.maxPlan.length} — ${DATA.maxPlan.slice(0,3).map(u => u.name).join(', ')}${DATA.maxPlan.length > 3 ? `, +${DATA.maxPlan.length - 3} more` : ''}
+• Opus-heavy Chat users (≥30%): ${DATA.opusHeavy.length} users totaling ${fmt(DATA.opusHeavy.reduce((s, u) => s + u.opusSpend, 0))} in Chat Opus
+• Cowork → Opus routing: ${DATA.coworkOpus.length} users, ${fmt(DATA.coworkOpus.reduce((s, u) => s + u.spend, 0))} (highest-priority automated cost)
+• High token density (>500K avg): ${DATA.tokenDensity.length} users
+• Legacy model users: ${DATA.legacyModels.length} users
+
+*Power Users (Efficient Benchmarks)*
+${DATA.powerUsers.slice(0, 5).map(u => `• ${u.name}: ${u.requests.toLocaleString()} reqs, ${fmt(u.cpr)}/req, 0% Opus`).join('\n')}
+
+DMs sent to flagged users for use-case assessment. End-of-month report — full April detail in dashboard.`;
+}
+
+function copyToClipboard(text, btn) {
+  navigator.clipboard.writeText(text).then(() => {
+    const orig = btn.textContent;
+    btn.textContent = '✓ Copied';
+    btn.style.background = 'var(--green)';
+    setTimeout(() => { btn.textContent = orig; btn.style.background = ''; }, 1800);
+  });
+}
+
+function renderActions() {
+  const drafts = [];
+  DATA.maxPlan.forEach(u => drafts.push({ ...u, flagType: 'max-plan', message: generateMaxPlanMsg(u) }));
+  DATA.opusHeavy.filter(u => u.opusSpend >= 20).forEach(u => drafts.push({ ...u, flagType: 'opus', message: generateOpusMsg(u) }));
+  DATA.coworkOpus.forEach(u => drafts.push({ ...u, flagType: 'cowork-opus', message: generateCoworkMsg(u) }));
+  DATA.tokenDensity.filter(u => u.spend >= 30).forEach(u => drafts.push({ ...u, flagType: 'token', message: generateTokenMsg(u) }));
+  DATA.legacyModels.filter(u => u.spend >= 10).forEach(u => drafts.push({ ...u, flagType: 'legacy', message: generateLegacyMsg(u) }));
+
+  let html = '<div class="copy-note">📋 In the shareable web version, message buttons copy text to your clipboard so you can paste into Slack manually. For one-click sending, use the artifact dashboard inside Claude.</div>';
+
+  // Channel summary
+  const summary = generateChannelSummary();
+  html += `<div class="panel">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;">
+      <div>
+        <div style="font-size:14px;font-weight:600;">#claude-utilization Channel Summary</div>
+        <div style="font-size:12px;color:var(--text-muted);">Ready-to-post April monthly summary for C0ANHN34VEC</div>
+      </div>
+      <button class="btn btn-lg" data-copy="channel">Copy Summary</button>
+    </div>
+    <div class="channel-summary" id="channel-summary">${esc(summary)}</div>
+  </div>`;
+
+  html += `<div style="font-size:14px;font-weight:600;margin-bottom:4px;">Draft DMs (${drafts.length})</div>`;
+  html += `<div style="font-size:12px;color:var(--text-muted);margin-bottom:16px;">Each message asks 2–3 questions about the user's specific April data before recommending changes.</div>`;
+
+  drafts.forEach((d, i) => {
+    const colors = {
+      'max-plan': ['var(--red-glow)', 'var(--red)'],
+      'opus': ['var(--purple-glow)', 'var(--purple)'],
+      'cowork-opus': ['var(--orange-glow)', 'var(--orange)'],
+      'token': ['var(--orange-glow)', 'var(--orange)'],
+      'legacy': ['var(--orange-glow)', 'var(--orange)'],
+    };
+    const [bgC, fgC] = colors[d.flagType] || ['var(--accent-glow)', 'var(--accent)'];
+    html += `<div class="draft-card">
+      <div class="draft-header">
+        <div>
+          <span class="draft-name">${esc(d.name)}</span>
+          <span class="draft-email">${esc(d.email)}</span>
+        </div>
+        <span class="badge" style="background:${bgC};color:${fgC};text-transform:uppercase;letter-spacing:0.06em;font-size:10px;">${esc(d.flagType.replace('-', ' '))}</span>
+      </div>
+      <div class="draft-message" id="draft-${i}">${esc(d.message)}</div>
+      <div style="margin-top:10px;display:flex;justify-content:flex-end;">
+        <button class="btn" data-copy="draft" data-target="${i}">Copy Message</button>
+      </div>
+    </div>`;
+  });
+
+  return html;
+}
+
+function attachCopyHandlers() {
+  document.querySelectorAll('[data-copy="channel"]').forEach(btn => {
+    btn.onclick = () => copyToClipboard(document.getElementById('channel-summary').textContent, btn);
+  });
+  document.querySelectorAll('[data-copy="draft"]').forEach(btn => {
+    btn.onclick = () => {
+      const idx = btn.dataset.target;
+      copyToClipboard(document.getElementById('draft-' + idx).textContent, btn);
+    };
+  });
+}
+
+function render() {
+  renderTabs();
+  const c = document.getElementById('container');
+  if (activeTab === 'overview') c.innerHTML = renderOverview();
+  else if (activeTab === 'leaderboard') c.innerHTML = renderLeaderboard();
+  else if (activeTab === 'flags') c.innerHTML = renderFlags();
+  else if (activeTab === 'breakdown') c.innerHTML = renderBreakdown();
+  else if (activeTab === 'actions') { c.innerHTML = renderActions(); attachCopyHandlers(); }
+}
+
+fetch('./data.json')
+  .then(r => r.json())
+  .then(d => {
+    DATA = d;
+    document.getElementById('period').textContent = d.summary.period;
+    render();
+  })
+  .catch(err => {
+    document.getElementById('container').innerHTML = '<div class="panel"><div style="color:var(--red);">Failed to load data.json: ' + esc(err.message) + '</div></div>';
+  });
+</script>
+</body>
+</html>
