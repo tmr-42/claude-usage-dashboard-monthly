@@ -145,40 +145,6 @@
     background: var(--bg); border: 1px solid var(--border);
     border-radius: 8px; padding: 14px; text-align: center;
   }
-  .draft-card {
-    background: var(--card); border: 1px solid var(--border); border-radius: 10px;
-    padding: 16px; margin-bottom: 12px; box-shadow: var(--shadow);
-  }
-  .draft-header {
-    display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;
-  }
-  .draft-name { font-weight: 600; font-size: 14px; }
-  .draft-email { color: var(--text-dim); font-size: 12px; margin-left: 8px; }
-  .draft-message {
-    background: #f4f4f9; border-radius: 8px; padding: 14px;
-    font-size: 13px; line-height: 1.6;
-    white-space: pre-wrap; font-family: 'JetBrains Mono', monospace;
-    border: 1px solid var(--border);
-  }
-  .channel-summary {
-    background: #f4f4f9; border-radius: 8px; padding: 16px;
-    font-size: 12px; line-height: 1.7;
-    white-space: pre-wrap; font-family: 'JetBrains Mono', monospace;
-    border: 1px solid var(--border); max-height: 320px; overflow: auto;
-  }
-  .btn {
-    background: var(--accent); color: #fff; border: none; border-radius: 6px;
-    padding: 7px 16px; font-size: 12px; font-weight: 600; cursor: pointer;
-    font-family: inherit; transition: all 0.2s;
-  }
-  .btn:hover { opacity: 0.9; }
-  .btn-lg { padding: 8px 18px; font-size: 13px; }
-  .copy-note {
-    background: var(--accent-glow); border: 1px solid var(--accent);
-    border-radius: 8px; padding: 12px 14px; font-size: 12px; color: var(--text);
-    margin-bottom: 16px; line-height: 1.5;
-  }
-  [hidden] { display: none !important; }
 </style>
 </head>
 <body>
@@ -201,7 +167,6 @@ const TABS = [
   { id: 'leaderboard', label: 'Leaderboard' },
   { id: 'flags', label: 'Flags & Alerts' },
   { id: 'breakdown', label: 'Breakdowns' },
-  { id: 'actions', label: 'Slack Actions' },
 ];
 
 const fmt = n => '$' + Number(n).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
@@ -439,160 +404,6 @@ function renderBreakdown() {
   return html;
 }
 
-function generateMaxPlanMsg(u) {
-  return `Hey ${u.name.split(' ')[0]} — quick note on your April Claude usage. Your monthly spend was ${fmt(u.monthlySpend)} (avg ~${fmt(u.avgWeekly)}/week). That's approaching the threshold where a Max plan starts to make sense, but before we go that route I want to understand what you're working on.
-
-A couple of questions:
-1. What's the primary use case driving your volume — is it a specific project or steady-state workflow?
-2. Are you intentionally selecting Opus for certain tasks, or is it your default model?
-3. Would shifting some work to Sonnet impact your output quality?
-
-No wrong answers here — just want to make sure we're matching cost to value.`;
-}
-
-function generateOpusMsg(u) {
-  return `Hey ${u.name.split(' ')[0]} — noticed your April Chat usage: ${fmt(u.opusSpend)} of your ${fmt(u.chatSpend)} Chat spend (${u.opusPct}%) went to Opus models.
-
-Quick questions so I can help optimize:
-1. Is Opus your intentional choice for specific tasks (complex analysis, code review, etc.), or is it set as your default?
-2. Have you tried running similar tasks on Sonnet to compare quality? For most Chat workflows, Sonnet 4.6 performs comparably at ~3x lower cost.
-3. What types of tasks are you typically using Chat for?
-
-This isn't about restricting access — it's about making sure you're getting value where Opus matters and saving cost where it doesn't.`;
-}
-
-function generateCoworkMsg(u) {
-  return `Hey ${u.name.split(' ')[0]} — flagging a Cowork routing pattern from April. Your Cowork usage routed ${u.requests} requests to ${u.model.replace(/_/g, ' ')} at ${fmt(u.spend)}. Since Cowork selects models automatically, no human made that model choice — and Opus is significantly more expensive than Sonnet for automated tasks.
-
-Can you help me understand:
-1. What Cowork workflows are you running? (This helps us determine if Opus routing is justified or a misconfiguration.)
-2. Have you noticed quality differences when Cowork uses Sonnet vs. Opus for these tasks?
-
-This is the highest-priority cost item because it's automated spend — I want to make sure the routing is intentional.`;
-}
-
-function generateTokenMsg(u) {
-  return `Hey ${u.name.split(' ')[0]} — your April Claude usage averaged ${fmtK(u.avgPromptTokens)} prompt tokens per request across ${u.requests} requests (${fmt(u.spend)} total). That's well above the org average and suggests very large context windows per conversation.
-
-A couple things I'd like to explore:
-1. Are you uploading large documents or pasting long text blocks into conversations? If so, there may be ways to break those into smaller chunks for better results and lower cost.
-2. Are you using long-running conversations where the context keeps growing? Starting fresh conversations for new topics can significantly reduce token usage.
-
-This is about prompt architecture, not model choice — small changes here can meaningfully reduce spend without changing your workflow.`;
-}
-
-function generateLegacyMsg(u) {
-  return `Hey ${u.name.split(' ')[0]} — noticed some of your April Claude usage ran on legacy model versions (${u.models.map(m => m.replace(/_/g, ' ')).join(', ')}). These older models are deprecated, and the current versions (Sonnet 4.6, Opus 4.7) offer better performance.
-
-Quick ask:
-1. Is there a reason you're pinned to older versions — a specific project dependency or integration?
-2. If not, can you update your model selection to the current versions? It should be a straight upgrade in quality.
-
-Happy to help with migration if anything is blocking the switch.`;
-}
-
-function generateChannelSummary() {
-  const opusTotal = DATA.models.filter(m => m.name.includes('opus')).reduce((s, m) => s + m.spend, 0);
-  const sonnetTotal = DATA.models.filter(m => m.name.includes('sonnet')).reduce((s, m) => s + m.spend, 0);
-  return `*Claude Utilization Report — ${DATA.summary.period} (Monthly)*
-
-*Spend Summary*
-• Total org spend: ${fmt(DATA.summary.totalSpend)}
-• Active users: ${DATA.summary.activeUsers}
-• Avg spend/user: ${fmt(DATA.summary.avgSpend)}
-• Top 10 users = ${fmt(DATA.summary.top10Spend)} (${DATA.summary.top10Pct}% of total)
-
-*Model Mix*
-• Sonnet: ${fmt(sonnetTotal)} (${(sonnetTotal / DATA.summary.totalSpend * 100).toFixed(0)}%)
-• Opus: ${fmt(opusTotal)} (${(opusTotal / DATA.summary.totalSpend * 100).toFixed(0)}%)
-
-*Flags This Month*
-• Max plan candidates ($400+/mo): ${DATA.maxPlan.length} — ${DATA.maxPlan.slice(0,3).map(u => u.name).join(', ')}${DATA.maxPlan.length > 3 ? `, +${DATA.maxPlan.length - 3} more` : ''}
-• Opus-heavy Chat users (≥30%): ${DATA.opusHeavy.length} users totaling ${fmt(DATA.opusHeavy.reduce((s, u) => s + u.opusSpend, 0))} in Chat Opus
-• Cowork → Opus routing: ${DATA.coworkOpus.length} users, ${fmt(DATA.coworkOpus.reduce((s, u) => s + u.spend, 0))} (highest-priority automated cost)
-• High token density (>500K avg): ${DATA.tokenDensity.length} users
-• Legacy model users: ${DATA.legacyModels.length} users
-
-*Power Users (Efficient Benchmarks)*
-${DATA.powerUsers.slice(0, 5).map(u => `• ${u.name}: ${u.requests.toLocaleString()} reqs, ${fmt(u.cpr)}/req, 0% Opus`).join('\n')}
-
-DMs sent to flagged users for use-case assessment. End-of-month report — full April detail in dashboard.`;
-}
-
-function copyToClipboard(text, btn) {
-  navigator.clipboard.writeText(text).then(() => {
-    const orig = btn.textContent;
-    btn.textContent = '✓ Copied';
-    btn.style.background = 'var(--green)';
-    setTimeout(() => { btn.textContent = orig; btn.style.background = ''; }, 1800);
-  });
-}
-
-function renderActions() {
-  const drafts = [];
-  DATA.maxPlan.forEach(u => drafts.push({ ...u, flagType: 'max-plan', message: generateMaxPlanMsg(u) }));
-  DATA.opusHeavy.filter(u => u.opusSpend >= 20).forEach(u => drafts.push({ ...u, flagType: 'opus', message: generateOpusMsg(u) }));
-  DATA.coworkOpus.forEach(u => drafts.push({ ...u, flagType: 'cowork-opus', message: generateCoworkMsg(u) }));
-  DATA.tokenDensity.filter(u => u.spend >= 30).forEach(u => drafts.push({ ...u, flagType: 'token', message: generateTokenMsg(u) }));
-  DATA.legacyModels.filter(u => u.spend >= 10).forEach(u => drafts.push({ ...u, flagType: 'legacy', message: generateLegacyMsg(u) }));
-
-  let html = '<div class="copy-note">📋 In the shareable web version, message buttons copy text to your clipboard so you can paste into Slack manually. For one-click sending, use the artifact dashboard inside Claude.</div>';
-
-  // Channel summary
-  const summary = generateChannelSummary();
-  html += `<div class="panel">
-    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;">
-      <div>
-        <div style="font-size:14px;font-weight:600;">#claude-utilization Channel Summary</div>
-        <div style="font-size:12px;color:var(--text-muted);">Ready-to-post April monthly summary for C0ANHN34VEC</div>
-      </div>
-      <button class="btn btn-lg" data-copy="channel">Copy Summary</button>
-    </div>
-    <div class="channel-summary" id="channel-summary">${esc(summary)}</div>
-  </div>`;
-
-  html += `<div style="font-size:14px;font-weight:600;margin-bottom:4px;">Draft DMs (${drafts.length})</div>`;
-  html += `<div style="font-size:12px;color:var(--text-muted);margin-bottom:16px;">Each message asks 2–3 questions about the user's specific April data before recommending changes.</div>`;
-
-  drafts.forEach((d, i) => {
-    const colors = {
-      'max-plan': ['var(--red-glow)', 'var(--red)'],
-      'opus': ['var(--purple-glow)', 'var(--purple)'],
-      'cowork-opus': ['var(--orange-glow)', 'var(--orange)'],
-      'token': ['var(--orange-glow)', 'var(--orange)'],
-      'legacy': ['var(--orange-glow)', 'var(--orange)'],
-    };
-    const [bgC, fgC] = colors[d.flagType] || ['var(--accent-glow)', 'var(--accent)'];
-    html += `<div class="draft-card">
-      <div class="draft-header">
-        <div>
-          <span class="draft-name">${esc(d.name)}</span>
-          <span class="draft-email">${esc(d.email)}</span>
-        </div>
-        <span class="badge" style="background:${bgC};color:${fgC};text-transform:uppercase;letter-spacing:0.06em;font-size:10px;">${esc(d.flagType.replace('-', ' '))}</span>
-      </div>
-      <div class="draft-message" id="draft-${i}">${esc(d.message)}</div>
-      <div style="margin-top:10px;display:flex;justify-content:flex-end;">
-        <button class="btn" data-copy="draft" data-target="${i}">Copy Message</button>
-      </div>
-    </div>`;
-  });
-
-  return html;
-}
-
-function attachCopyHandlers() {
-  document.querySelectorAll('[data-copy="channel"]').forEach(btn => {
-    btn.onclick = () => copyToClipboard(document.getElementById('channel-summary').textContent, btn);
-  });
-  document.querySelectorAll('[data-copy="draft"]').forEach(btn => {
-    btn.onclick = () => {
-      const idx = btn.dataset.target;
-      copyToClipboard(document.getElementById('draft-' + idx).textContent, btn);
-    };
-  });
-}
-
 function render() {
   renderTabs();
   const c = document.getElementById('container');
@@ -600,7 +411,6 @@ function render() {
   else if (activeTab === 'leaderboard') c.innerHTML = renderLeaderboard();
   else if (activeTab === 'flags') c.innerHTML = renderFlags();
   else if (activeTab === 'breakdown') c.innerHTML = renderBreakdown();
-  else if (activeTab === 'actions') { c.innerHTML = renderActions(); attachCopyHandlers(); }
 }
 
 fetch('./data.json')
