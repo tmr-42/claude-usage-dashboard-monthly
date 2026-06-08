@@ -1,428 +1,229 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>Claude Usage Analysis — April 2026 (Monthly)</title>
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet" />
-<style>
-  :root {
-    --bg: #f7f7fb;
-    --card: #ffffff;
-    --border: #e6e6ef;
-    --border-light: #d8d8e3;
-    --text: #1a1a2e;
-    --text-muted: #5a5a72;
-    --text-dim: #8a8aa0;
-    --accent: #4f46e5;
-    --accent-glow: rgba(79,70,229,0.10);
-    --red: #dc2626;
-    --red-glow: rgba(220,38,38,0.10);
-    --orange: #ea580c;
-    --orange-glow: rgba(234,88,12,0.10);
-    --green: #16a34a;
-    --green-glow: rgba(22,163,74,0.10);
-    --purple: #9333ea;
-    --purple-glow: rgba(147,51,234,0.10);
-    --cyan: #0891b2;
-    --shadow: 0 1px 2px rgba(0,0,0,0.04);
-  }
-  * { box-sizing: border-box; }
-  html, body { margin: 0; padding: 0; }
-  body {
-    background: var(--bg);
-    color: var(--text);
-    font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
-    min-height: 100vh;
-    -webkit-font-smoothing: antialiased;
-  }
-  .mono { font-family: 'JetBrains Mono', monospace; }
-  .header {
-    background: var(--card);
-    border-bottom: 1px solid var(--border);
-    padding: 24px 24px 0;
-  }
-  .header-title { display: flex; align-items: baseline; gap: 12px; margin-bottom: 4px; }
-  h1 { font-size: 22px; font-weight: 800; margin: 0; letter-spacing: -0.03em; }
-  .period { font-size: 13px; color: var(--text-muted); font-family: 'JetBrains Mono', monospace; }
-  .period-badge {
-    font-size: 10px; font-weight: 700; padding: 3px 8px; border-radius: 6px;
-    background: var(--accent-glow); color: var(--accent);
-    text-transform: uppercase; letter-spacing: 0.06em;
-  }
-  .tabs { display: flex; gap: 0; margin-top: 16px; }
-  .tab {
-    background: none; border: none; color: var(--text-muted);
-    font-size: 13px; font-weight: 600; padding: 8px 16px; cursor: pointer;
-    border-bottom: 2px solid transparent; transition: all 0.2s;
-    margin-bottom: -1px; font-family: inherit;
-  }
-  .tab.active { color: var(--accent); border-bottom-color: var(--accent); }
-  .tab-badge {
-    background: var(--red-glow); color: var(--red);
-    font-size: 10px; font-weight: 700; padding: 1px 6px;
-    border-radius: 8px; margin-left: 6px;
-  }
-  .container { padding: 24px; max-width: 1100px; }
-  .stat-row { display: flex; gap: 12px; margin-bottom: 20px; flex-wrap: wrap; }
-  .stat-card {
-    background: var(--card); border: 1px solid var(--border); border-radius: 10px;
-    padding: 16px 20px; flex: 1 1 0; min-width: 200px; box-shadow: var(--shadow);
-  }
-  .stat-label {
-    font-size: 11px; text-transform: uppercase; letter-spacing: 0.08em;
-    color: var(--text-muted); margin-bottom: 6px; font-weight: 500;
-  }
-  .stat-value {
-    font-size: 26px; font-weight: 700; letter-spacing: -0.02em;
-    font-family: 'JetBrains Mono', monospace;
-  }
-  .stat-sub { font-size: 12px; color: var(--text-dim); margin-top: 4px; }
-  .panel {
-    background: var(--card); border: 1px solid var(--border); border-radius: 10px;
-    padding: 18px; margin-bottom: 20px; box-shadow: var(--shadow);
-  }
-  .panel-title { font-size: 13px; font-weight: 600; margin-bottom: 14px; }
-  .row {
-    display: flex; align-items: center; gap: 12px; margin-bottom: 8px;
-  }
-  .bar {
-    width: 100%; height: 6px; border-radius: 3px;
-    background: var(--border); overflow: hidden;
-  }
-  .bar-fill { height: 100%; border-radius: 3px; transition: width 0.4s ease; }
-  .leaderboard-table { width: 100%; border-collapse: collapse; font-size: 13px; }
-  .leaderboard-table th {
-    padding: 10px 14px; text-align: left; font-size: 11px; color: var(--text-muted);
-    font-weight: 600; text-transform: uppercase; letter-spacing: 0.06em;
-    background: var(--bg); border-bottom: 1px solid var(--border);
-  }
-  .leaderboard-table td {
-    padding: 10px 14px; border-bottom: 1px solid var(--border);
-  }
-  .leaderboard-table tr.flagged { background: var(--red-glow); }
-  .model-bar {
-    display: flex; gap: 2px; height: 8px; border-radius: 4px;
-    overflow: hidden; width: 100%;
-  }
-  .flag-card {
-    background: var(--card); border: 1px solid var(--border); border-radius: 10px;
-    overflow: hidden; margin-bottom: 16px; box-shadow: var(--shadow);
-  }
-  .flag-header {
-    display: flex; align-items: center; gap: 10px;
-    padding: 14px 18px; cursor: pointer; user-select: none;
-  }
-  .flag-title { font-weight: 600; font-size: 14px; flex: 1; }
-  .flag-count {
-    font-size: 12px; font-weight: 700; padding: 3px 10px; border-radius: 12px;
-  }
-  .flag-row {
-    display: flex; align-items: center; gap: 12px;
-    padding: 10px 18px; border-bottom: 1px solid var(--border); font-size: 13px;
-  }
-  .flag-row:last-child { border-bottom: none; }
-  .badge {
-    font-size: 11px; font-weight: 700; padding: 2px 8px; border-radius: 8px;
-  }
-  .legend { padding: 12px; display: flex; gap: 16px; justify-content: center;
-    border-top: 1px solid var(--border); background: var(--bg); }
-  .legend-item { display: flex; align-items: center; gap: 6px;
-    font-size: 11px; color: var(--text-muted); }
-  .legend-swatch { width: 10px; height: 10px; border-radius: 2px; display: inline-block; }
-  .breakdown-grid {
-    display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 20px;
-  }
-  @media (max-width: 700px) {
-    .breakdown-grid { grid-template-columns: 1fr; }
-    .container { padding: 16px; }
-  }
-  .cpr-grid {
-    display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
-    gap: 12px;
-  }
-  .cpr-card {
-    background: var(--bg); border: 1px solid var(--border);
-    border-radius: 8px; padding: 14px; text-align: center;
-  }
-</style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Claude Usage Analysis — May 2026 (Monthly)</title>
+<script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+<script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+<script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>*{box-sizing:border-box;margin:0;padding:0;}body{font-family:'Inter',-apple-system,sans-serif;background:#f7f7fb;}</style>
 </head>
 <body>
-<div class="header">
-  <div class="header-title">
-    <h1>Claude Usage Analysis</h1>
-    <span class="period" id="period">Loading…</span>
-    <span class="period-badge">Monthly</span>
-  </div>
-  <div class="tabs" id="tabs"></div>
-</div>
-<div class="container" id="container"></div>
+<div id="root"></div>
+<script type="text/babel">
+const { useState, useMemo, useEffect } = React;
+const C = {bg:"#f7f7fb",card:"#ffffff",border:"#e2e4ed",accent:"#4f46e5",accentLight:"#ede9fe",accentMuted:"#818cf8",text:"#18181b",textMuted:"#6b7280",textDim:"#9ca3af",green:"#10b981",amber:"#f59e0b",red:"#ef4444",orange:"#f97316",blue:"#3b82f6"};
 
-<script>
-let DATA = null;
-let activeTab = 'overview';
+function formatModel(m) {
+  if (!m) return "";
+  const s = m.toLowerCase();
+  if (s.includes("opus-4-8")) return "Opus 4.8";
+  if (s.includes("opus-4-7")) return "Opus 4.7";
+  if (s.includes("opus-4-6")) return "Opus 4.6";
+  if (s.includes("opus-4-5")) return "Opus 4.5";
+  if (s.includes("3-opus")||s.includes("opus-3")) return "Claude 3 Opus";
+  if (s.includes("sonnet-4-6")) return "Sonnet 4.6";
+  if (s.includes("sonnet-4-5")) return "Sonnet 4.5";
+  if (s.includes("sonnet-4-2")||s.includes("sonnet-4-20")) return "Sonnet 4 (legacy)";
+  if (s.includes("haiku-4-5")) return "Haiku 4.5";
+  return m;
+}
+function modelColor(m) {
+  if (!m) return C.textDim;
+  const s = m.toLowerCase();
+  if (s.includes("opus")) return C.red;
+  if (s.includes("sonnet")) return C.accent;
+  if (s.includes("haiku")) return C.green;
+  return C.textDim;
+}
+const fmt = v => "$"+Number(v).toLocaleString("en-US",{minimumFractionDigits:2,maximumFractionDigits:2});
 
-const TABS = [
-  { id: 'overview', label: 'Overview' },
-  { id: 'leaderboard', label: 'Leaderboard' },
-  { id: 'flags', label: 'Flags & Alerts' },
-  { id: 'breakdown', label: 'Breakdowns' },
-];
-
-const fmt = n => '$' + Number(n).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-const fmtK = n => n >= 1000000 ? (n/1000000).toFixed(1) + 'M' : n >= 1000 ? (n/1000).toFixed(0) + 'K' : String(n);
-const esc = s => String(s).replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
-
-function bar(value, max, color) {
-  const pct = max > 0 ? Math.min((value / max) * 100, 100) : 0;
-  return `<div class="bar"><div class="bar-fill" style="width:${pct}%;background:${color};"></div></div>`;
+function FlagPill({flag}) {
+  const colors = {"max-plan":{bg:"#fef2f2",text:"#dc2626",label:"Max Plan"},"approaching":{bg:"#fff7ed",text:"#c2410c",label:"Approaching"},"cowork-opus":{bg:"#fdf4ff",text:"#7e22ce",label:"Cowork→Opus"},"opus-heavy":{bg:"#fef3c7",text:"#92400e",label:"Opus Heavy"},"legacy":{bg:"#f0fdf4",text:"#166534",label:"Legacy"},"low-engagement":{bg:"#f0f9ff",text:"#0369a1",label:"Low Usage"}};
+  const c = colors[flag]||{bg:C.accentLight,text:C.accent,label:flag};
+  return <span style={{background:c.bg,color:c.text,fontSize:10,fontWeight:700,padding:"2px 7px",borderRadius:99,letterSpacing:"0.04em",textTransform:"uppercase",whiteSpace:"nowrap"}}>{c.label}</span>;
+}
+function ModelBar({modelMix}) {
+  if (!modelMix) return null;
+  const total = Object.values(modelMix).reduce((s,v)=>s+v.spend,0)||1;
+  return <div style={{display:"flex",height:6,borderRadius:3,overflow:"hidden",width:80,gap:1}}>{Object.entries(modelMix).sort((a,b)=>b[1].spend-a[1].spend).map(([m,v])=><div key={m} style={{width:`${v.spend/total*100}%`,background:modelColor(m),minWidth:v.spend>0?1:0}} title={formatModel(m)+": "+fmt(v.spend)}/>)}</div>;
+}
+function ExpandedUserRow({user}) {
+  const products = Object.entries(user.productMix||{}).sort((a,b)=>b[1].spend-a[1].spend);
+  const models = Object.entries(user.modelMix||{}).sort((a,b)=>b[1].spend-a[1].spend);
+  const matrix = user.productModelMatrix||{};
+  const allModels = [...new Set(Object.values(matrix).flatMap(m=>Object.keys(m)))].sort();
+  const allProducts = Object.keys(matrix).sort((a,b)=>{const sa=Object.values(matrix[a]).reduce((s,v)=>s+v.spend,0);const sb=Object.values(matrix[b]).reduce((s,v)=>s+v.spend,0);return sb-sa;});
+  return <div style={{padding:"16px 24px 20px",background:"#f9fafb",borderTop:`1px solid ${C.border}`,display:"grid",gridTemplateColumns:"1fr 1fr 2fr",gap:20}}>
+    <div><div style={{fontSize:11,fontWeight:700,textTransform:"uppercase",letterSpacing:"0.08em",color:C.textDim,marginBottom:8}}>Product Mix</div>{products.map(([p,v])=><div key={p} style={{display:"flex",justifyContent:"space-between",fontSize:12,marginBottom:4}}><span style={{color:C.textMuted}}>{p}</span><span style={{fontWeight:600}}>{fmt(v.spend)}</span></div>)}</div>
+    <div><div style={{fontSize:11,fontWeight:700,textTransform:"uppercase",letterSpacing:"0.08em",color:C.textDim,marginBottom:8}}>Model Mix</div>{models.map(([m,v])=><div key={m} style={{display:"flex",justifyContent:"space-between",fontSize:12,marginBottom:4}}><span style={{color:modelColor(m)}}>{formatModel(m)}</span><span style={{fontWeight:600,color:C.text}}>{fmt(v.spend)}</span></div>)}</div>
+    <div><div style={{fontSize:11,fontWeight:700,textTransform:"uppercase",letterSpacing:"0.08em",color:C.textDim,marginBottom:8}}>Product × Model</div>
+    <table style={{fontSize:11,borderCollapse:"collapse",width:"100%"}}>
+      <thead><tr><th style={{textAlign:"left",padding:"2px 8px 2px 0",color:C.textDim,fontWeight:600}}>Product</th>{allModels.map(m=><th key={m} style={{textAlign:"right",padding:"2px 4px",color:modelColor(m),fontWeight:600}}>{formatModel(m)}</th>)}<th style={{textAlign:"right",padding:"2px 0 2px 4px",color:C.textDim,fontWeight:600}}>Total</th></tr></thead>
+      <tbody>{allProducts.map((p,i)=>{const rowTotal=allModels.reduce((s,m)=>s+(matrix[p]?.[m]?.spend||0),0);return <tr key={p} style={{background:i%2===0?"transparent":"#f0f0f5"}}><td style={{padding:"2px 8px 2px 0",color:C.textMuted}}>{p}</td>{allModels.map(m=><td key={m} style={{textAlign:"right",padding:"2px 4px",color:matrix[p]?.[m]?.spend>0?C.text:C.textDim}}>{matrix[p]?.[m]?.spend>0?fmt(matrix[p][m].spend):"—"}</td>)}<td style={{textAlign:"right",padding:"2px 0 2px 4px",fontWeight:700,color:C.text}}>{fmt(rowTotal)}</td></tr>;})}
+      <tr style={{borderTop:`1px solid ${C.border}`}}><td style={{padding:"4px 8px 2px 0",fontWeight:700,color:C.text}}>Total</td>{allModels.map(m=>{const mTotal=allProducts.reduce((s,p)=>s+(matrix[p]?.[m]?.spend||0),0);return <td key={m} style={{textAlign:"right",padding:"4px 4px 2px",fontWeight:700,color:modelColor(m)}}>{fmt(mTotal)}</td>;})}<td style={{textAlign:"right",padding:"4px 0 2px 4px",fontWeight:700,color:C.text}}>{fmt(Object.values(user.modelMix||{}).reduce((s,v)=>s+v.spend,0))}</td></tr>
+      </tbody>
+    </table></div>
+  </div>;
 }
 
-function modelBar(models) {
-  const total = (models.opus || 0) + (models.sonnet || 0) + (models.haiku || 0);
-  if (total === 0) return '';
-  const opus = ((models.opus || 0) / total) * 100;
-  const sonnet = ((models.sonnet || 0) / total) * 100;
-  const haiku = ((models.haiku || 0) / total) * 100;
-  let html = '<div class="model-bar">';
-  if (opus > 0) html += `<div style="width:${opus}%;background:var(--red);min-width:2px;" title="Opus ${opus.toFixed(0)}%"></div>`;
-  if (sonnet > 0) html += `<div style="width:${sonnet}%;background:var(--accent);min-width:2px;" title="Sonnet ${sonnet.toFixed(0)}%"></div>`;
-  if (haiku > 0) html += `<div style="width:${haiku}%;background:var(--green);min-width:2px;" title="Haiku ${haiku.toFixed(0)}%"></div>`;
-  html += '</div>';
-  return html;
+function StatCard({label,value,sub,accent}) {
+  return <div style={{background:C.card,border:`1px solid ${C.border}`,borderRadius:10,padding:"16px 20px",flex:1,minWidth:140}}><div style={{fontSize:11,fontWeight:700,textTransform:"uppercase",letterSpacing:"0.08em",color:C.textDim,marginBottom:6}}>{label}</div><div style={{fontSize:24,fontWeight:800,letterSpacing:"-0.03em",color:accent||C.text}}>{value}</div>{sub&&<div style={{fontSize:12,color:C.textMuted,marginTop:2}}>{sub}</div>}</div>;
 }
 
-function renderTabs() {
-  const flagCount = DATA.maxPlan.length + DATA.opusHeavy.filter(u => u.opusSpend >= 20).length + DATA.coworkOpus.length;
-  document.getElementById('tabs').innerHTML = TABS.map(t =>
-    `<button class="tab ${activeTab === t.id ? 'active' : ''}" data-tab="${t.id}">${t.label}${t.id === 'flags' ? `<span class="tab-badge">${flagCount}</span>` : ''}</button>`
-  ).join('');
-  document.querySelectorAll('[data-tab]').forEach(el => {
-    el.onclick = () => { activeTab = el.dataset.tab; render(); };
-  });
-}
+function App() {
+  const [DATA, setDATA] = useState(null);
+  const [activeTab, setActiveTab] = useState("overview");
+  const [expanded, setExpanded] = useState(null);
+  const [auExpanded, setAuExpanded] = useState(null);
+  const [search, setSearch] = useState("");
+  const [sort, setSort] = useState("spend");
+  const [flagSection, setFlagSection] = useState("max");
 
-function renderOverview() {
-  const flagCount = DATA.maxPlan.length + DATA.opusHeavy.filter(u => u.opusSpend >= 20).length + DATA.coworkOpus.length + DATA.tokenDensity.filter(u => u.spend >= 30).length;
-  let html = '<div class="stat-row">' +
-    `<div class="stat-card"><div class="stat-label">Total Org Spend</div><div class="stat-value">${fmt(DATA.summary.totalSpend)}</div><div class="stat-sub">April 2026 (full month)</div></div>` +
-    `<div class="stat-card"><div class="stat-label">Active Users</div><div class="stat-value">${DATA.summary.activeUsers}</div><div class="stat-sub">${fmt(DATA.summary.avgSpend)} avg/user</div></div>` +
-    `<div class="stat-card"><div class="stat-label">Top 10 Concentration</div><div class="stat-value" style="color:var(--orange);">${DATA.summary.top10Pct}%</div><div class="stat-sub">${fmt(DATA.summary.top10Spend)}</div></div>` +
-    `<div class="stat-card"><div class="stat-label">Flags Raised</div><div class="stat-value" style="color:var(--red);">${flagCount}</div><div class="stat-sub">Action items</div></div>` +
-  '</div>';
+  useEffect(()=>{fetch("./data.json").then(r=>r.json()).then(setDATA).catch(()=>setDATA(null));},[]);
 
-  // Models
-  html += '<div class="panel"><div class="panel-title">Model Spend Distribution</div>';
-  DATA.models.forEach(m => {
-    const pct = (m.spend / DATA.summary.totalSpend * 100);
-    const color = m.name.includes('opus') ? 'var(--red)' : m.name.includes('sonnet') ? 'var(--accent)' : 'var(--green)';
-    const label = m.name.replace(/^claude_/, '').replace(/_/g, ' ');
-    html += `<div class="row">
-      <div style="width:140px;font-size:12px;font-family:'JetBrains Mono',monospace;color:var(--text-muted);">${esc(label)}</div>
-      <div style="flex:1;">${bar(m.spend, DATA.models[0].spend, color)}</div>
-      <div style="width:80px;text-align:right;font-size:12px;font-family:'JetBrains Mono',monospace;color:${color};">${fmt(m.spend)}</div>
-      <div style="width:40px;text-align:right;font-size:11px;color:var(--text-dim);">${pct.toFixed(0)}%</div>
-    </div>`;
-  });
-  html += '</div>';
+  if (!DATA) return <div style={{display:"flex",alignItems:"center",justifyContent:"center",minHeight:"100vh",fontSize:14,color:C.textMuted}}>Loading...</div>;
 
-  // Products
-  html += '<div class="panel"><div class="panel-title">Product Surface Breakdown</div>';
-  DATA.products.forEach(p => {
-    const pct = (p.spend / DATA.summary.totalSpend * 100);
-    html += `<div class="row">
-      <div style="width:140px;font-size:12px;color:var(--text-muted);">${esc(p.name)}</div>
-      <div style="flex:1;">${bar(p.spend, DATA.products[0].spend, 'var(--cyan)')}</div>
-      <div style="width:80px;text-align:right;font-size:12px;font-family:'JetBrains Mono',monospace;">${fmt(p.spend)}</div>
-      <div style="width:80px;text-align:right;font-size:11px;color:var(--text-dim);">${p.requests.toLocaleString()} reqs</div>
-      <div style="width:40px;text-align:right;font-size:11px;color:var(--text-dim);">${pct.toFixed(0)}%</div>
-    </div>`;
-  });
-  html += '</div>';
+  const s = DATA.summary;
+  const TABS = [{id:"overview",label:"Overview"},{id:"leaderboard",label:"Leaderboard"},{id:"allusers",label:"All Users"},{id:"flags",label:"Flags & Alerts"},{id:"breakdowns",label:"Breakdowns"}];
 
-  // Power users
-  html += '<div class="panel"><div style="font-size:13px;font-weight:600;color:var(--green);margin-bottom:4px;">⚡ Power Users — Org Efficiency Benchmarks</div>';
-  html += '<div style="font-size:11px;color:var(--text-dim);margin-bottom:14px;">High volume, Sonnet/Haiku dominant, low cost-per-request</div>';
-  DATA.powerUsers.forEach((u, i) => {
-    const last = i === DATA.powerUsers.length - 1;
-    html += `<div style="display:flex;align-items:center;gap:12px;padding:8px 0;${!last ? 'border-bottom:1px solid var(--border);' : ''}">
-      <span style="width:22px;font-size:12px;color:var(--text-dim);text-align:center;">${i+1}</span>
-      <span style="flex:1;font-size:13px;font-weight:500;">${esc(u.name)}</span>
-      <span style="font-size:12px;color:var(--green);font-family:'JetBrains Mono',monospace;width:90px;text-align:right;">${u.requests.toLocaleString()} reqs</span>
-      <span style="font-size:12px;color:var(--text-muted);font-family:'JetBrains Mono',monospace;width:80px;text-align:right;">${fmt(u.spend)}</span>
-      <span style="font-size:12px;color:var(--green);font-family:'JetBrains Mono',monospace;width:70px;text-align:right;">${fmt(u.cpr)}/req</span>
-    </div>`;
-  });
-  html += '</div>';
-  return html;
-}
+  const filtered = useMemo ? useMemo(()=>{let u=(DATA.allUsers||[]).filter(u=>!search||u.name.toLowerCase().includes(search.toLowerCase())||u.email.toLowerCase().includes(search.toLowerCase()));u.sort((a,b)=>sort==="spend"?b.spend-a.spend:sort==="requests"?b.requests-a.requests:b.cpr-a.cpr);return u;},[search,sort,DATA]) : (DATA.allUsers||[]);
 
-function renderLeaderboard() {
-  let html = '<div class="panel" style="padding:0;overflow:hidden;">';
-  html += '<div style="padding:14px 18px;border-bottom:1px solid var(--border);font-size:13px;font-weight:600;">Top 30 Spenders — April 2026</div>';
-  html += '<div style="overflow-x:auto;"><table class="leaderboard-table"><thead><tr>';
-  ['#','User','Spend','Requests','$/Req','Model Mix','Top Product'].forEach(h => html += `<th>${h}</th>`);
-  html += '</tr></thead><tbody>';
-  DATA.leaderboard.forEach((u, i) => {
-    const products = Object.entries(u.products).sort((a,b) => b[1] - a[1]);
-    const top = products[0];
-    const flagged = u.spend >= 400;
-    const spendColor = u.spend >= 500 ? 'var(--red)' : u.spend >= 250 ? 'var(--orange)' : 'var(--text)';
-    const cprColor = u.cpr > 0.5 ? 'var(--orange)' : 'var(--text-muted)';
-    html += `<tr class="${flagged ? 'flagged' : ''}">
-      <td style="color:var(--text-dim);width:30px;">${i+1}</td>
-      <td><div style="font-weight:500;">${esc(u.name)}</div><div style="font-size:11px;color:var(--text-dim);">${esc(u.email.split('@')[0])}</div></td>
-      <td class="mono" style="font-weight:600;color:${spendColor};">${fmt(u.spend)}</td>
-      <td class="mono" style="color:var(--text-muted);">${u.requests.toLocaleString()}</td>
-      <td class="mono" style="color:${cprColor};">${fmt(u.cpr)}</td>
-      <td style="width:120px;">${modelBar(u.models)}<div style="font-size:10px;color:var(--text-dim);margin-top:3px;">${u.opusPct > 0 ? `<span style="color:var(--red);">${u.opusPct}% Opus</span>` : ''}</div></td>
-      <td style="font-size:12px;color:var(--text-muted);">${top ? esc(top[0]) + ' (' + fmt(top[1]) + ')' : '—'}</td>
-    </tr>`;
-  });
-  html += '</tbody></table></div>';
-  html += '<div class="legend">';
-  html += '<span class="legend-item"><span class="legend-swatch" style="background:var(--red);"></span> Opus</span>';
-  html += '<span class="legend-item"><span class="legend-swatch" style="background:var(--accent);"></span> Sonnet</span>';
-  html += '<span class="legend-item"><span class="legend-swatch" style="background:var(--green);"></span> Haiku</span>';
-  html += '</div></div>';
-  return html;
-}
-
-function flagCard(icon, title, count, color, glow, description, rows) {
-  return `<div class="flag-card">
-    <div class="flag-header" onclick="this.nextElementSibling.hidden = !this.nextElementSibling.hidden;">
-      <span style="font-size:18px;">${icon}</span>
-      <span class="flag-title">${title}</span>
-      <span class="flag-count" style="background:${glow};color:${color};">${count}</span>
-      <span style="color:var(--text-dim);font-size:14px;">▾</span>
-    </div>
-    <div>
-      <div style="padding:14px;font-size:12px;color:var(--text-muted);border-bottom:1px solid var(--border);border-top:1px solid var(--border);">${description}</div>
-      ${rows}
-    </div>
-  </div>`;
-}
-
-function renderFlags() {
-  let html = '';
-
-  // Max Plan
-  let rows = DATA.maxPlan.map(u => `<div class="flag-row">
-    <span style="flex:1;font-weight:500;">${esc(u.name)}</span>
-    <span class="mono" style="color:var(--red);font-weight:600;">${fmt(u.monthlySpend)}/mo</span>
-    <span class="mono" style="font-size:12px;color:var(--text-dim);">~${fmt(u.avgWeekly)}/wk avg</span>
-  </div>`).join('');
-  html += flagCard('🔴', 'Max Plan Candidates (Approaching $800/mo)', DATA.maxPlan.length, 'var(--red)', 'var(--red-glow)',
-    'Monthly spend $400+ in April. Nobody crossed the confirmed Max Plan threshold ($800+/mo), but these users are trending toward it. Use-case assessment recommended.', rows);
-
-  // Cowork + Opus
-  rows = DATA.coworkOpus.map(u => `<div class="flag-row">
-    <span style="flex:1;font-weight:500;">${esc(u.name)}</span>
-    <span class="mono" style="color:var(--orange);font-weight:600;">${fmt(u.spend)}</span>
-    <span style="font-size:12px;color:var(--text-dim);">${u.requests.toLocaleString()} reqs</span>
-    <span class="mono" style="font-size:11px;color:var(--text-dim);">${esc(u.model.replace(/_/g, ' '))}</span>
-  </div>`).join('');
-  html += flagCard('🟠', 'Cowork → Opus (Automated Routing)', DATA.coworkOpus.length, 'var(--orange)', 'var(--orange-glow)',
-    'Highest-priority cost control. No human selected Opus — Cowork routed automatically.', rows);
-
-  // Opus Heavy
-  const opusHeavy = DATA.opusHeavy.filter(u => u.opusSpend >= 20);
-  rows = opusHeavy.map(u => `<div class="flag-row">
-    <span style="flex:1;font-weight:500;">${esc(u.name)}</span>
-    <span class="mono" style="font-size:12px;color:var(--purple);">${fmt(u.opusSpend)} Opus</span>
-    <span style="font-size:11px;color:var(--text-dim);">/ ${fmt(u.chatSpend)} Chat</span>
-    <span class="badge" style="background:var(--purple-glow);color:var(--purple);">${u.opusPct}%</span>
-  </div>`).join('');
-  html += flagCard('🟣', 'Opus-Heavy Chat Users (≥30%)', opusHeavy.length, 'var(--purple)', 'var(--purple-glow)',
-    '≥30% of Chat spend on Opus models. Excludes Code (separate conversation). Showing users with ≥$20 Opus Chat spend.', rows);
-
-  // Token Density
-  rows = DATA.tokenDensity.slice(0, 20).map(u => `<div class="flag-row">
-    <span style="flex:1;font-weight:500;">${esc(u.name)}</span>
-    <span class="mono" style="font-size:12px;color:var(--orange);">${fmtK(u.avgPromptTokens)} avg</span>
-    <span style="font-size:11px;color:var(--text-dim);">${u.requests.toLocaleString()} reqs</span>
-    <span class="mono" style="font-size:12px;color:var(--text-muted);">${fmt(u.spend)}</span>
-  </div>`).join('');
-  html += flagCard('📐', 'High Token Density (>500K avg prompt)', DATA.tokenDensity.length, 'var(--orange)', 'var(--orange-glow)',
-    'Prompt architecture issue — not a model problem. Large context windows driving cost.', rows);
-
-  // Legacy
-  rows = DATA.legacyModels.map(u => `<div class="flag-row">
-    <span style="flex:1;font-weight:500;">${esc(u.name)}</span>
-    <span class="mono" style="font-size:11px;color:var(--text-dim);">${esc(u.models.map(m => m.replace(/^claude_/, '').replace(/_/g, ' ')).join(', '))}</span>
-    <span class="mono" style="font-size:12px;color:var(--text-muted);">${fmt(u.spend)}</span>
-  </div>`).join('');
-  html += flagCard('⚠️', 'Legacy Model Usage', DATA.legacyModels.length, 'var(--orange)', 'var(--orange-glow)',
-    'Deprecated model versions (4.5 and older). Should migrate to current Sonnet 4.6 / Opus 4.7.', rows);
-
-  return html;
-}
-
-function renderBreakdown() {
-  let html = '<div class="breakdown-grid">';
-  html += '<div class="panel"><div class="panel-title">Model Breakdown</div>';
-  DATA.models.forEach(m => {
-    const color = m.name.includes('opus') ? 'var(--red)' : m.name.includes('sonnet') ? 'var(--accent)' : 'var(--green)';
-    const label = m.name.replace(/^claude_/, '').replace(/_/g, ' ');
-    const pct = (m.spend / DATA.summary.totalSpend * 100);
-    html += `<div style="margin-bottom:12px;">
-      <div style="display:flex;justify-content:space-between;margin-bottom:4px;">
-        <span style="font-size:12px;color:var(--text-muted);">${esc(label)}</span>
-        <span style="font-size:12px;font-family:'JetBrains Mono',monospace;color:${color};">${fmt(m.spend)} (${pct.toFixed(1)}%)</span>
+  return <div style={{background:C.bg,color:C.text,minHeight:"100vh"}}>
+    <div style={{padding:"20px 24px 0",borderBottom:`1px solid ${C.border}`,background:C.card}}>
+      <div style={{display:"flex",alignItems:"baseline",gap:12,marginBottom:4,flexWrap:"wrap"}}>
+        <h1 style={{fontSize:20,fontWeight:800,margin:0,letterSpacing:"-0.03em"}}>Claude Usage Analysis</h1>
+        <span style={{fontSize:12,color:C.textMuted,fontFamily:"monospace"}}>{s.monthOf}</span>
+        <span style={{fontSize:11,color:C.textDim,marginLeft:"auto",fontFamily:"monospace"}}>Monthly Report</span>
       </div>
-      ${bar(m.spend, DATA.models[0].spend, color)}
-      <div style="font-size:11px;color:var(--text-dim);margin-top:2px;">${m.requests.toLocaleString()} requests</div>
-    </div>`;
-  });
-  html += '</div>';
-
-  html += '<div class="panel"><div class="panel-title">Product Surface Breakdown</div>';
-  DATA.products.forEach(p => {
-    const pct = (p.spend / DATA.summary.totalSpend * 100);
-    html += `<div style="margin-bottom:12px;">
-      <div style="display:flex;justify-content:space-between;margin-bottom:4px;">
-        <span style="font-size:12px;color:var(--text-muted);">${esc(p.name)}</span>
-        <span style="font-size:12px;font-family:'JetBrains Mono',monospace;color:var(--cyan);">${fmt(p.spend)} (${pct.toFixed(1)}%)</span>
+      <div style={{display:"flex",gap:0,marginTop:12,flexWrap:"wrap"}}>
+        {TABS.map(t=><button key={t.id} onClick={()=>setActiveTab(t.id)} style={{background:"none",border:"none",color:activeTab===t.id?C.accent:C.textDim,fontSize:13,fontWeight:600,padding:"8px 16px",cursor:"pointer",borderBottom:activeTab===t.id?`2px solid ${C.accent}`:"2px solid transparent",marginBottom:-1}}>{t.label}</button>)}
       </div>
-      ${bar(p.spend, DATA.products[0].spend, 'var(--cyan)')}
-      <div style="font-size:11px;color:var(--text-dim);margin-top:2px;">${p.requests.toLocaleString()} requests • ${fmt(p.spend / p.requests)}/req avg</div>
-    </div>`;
-  });
-  html += '</div></div>';
+    </div>
 
-  html += '<div class="panel"><div class="panel-title">Cost Per Request by Product</div><div class="cpr-grid">';
-  DATA.products.forEach(p => {
-    const cpr = p.spend / p.requests;
-    const color = cpr > 0.3 ? 'var(--orange)' : 'var(--text)';
-    html += `<div class="cpr-card">
-      <div style="font-size:11px;color:var(--text-muted);margin-bottom:6px;">${esc(p.name)}</div>
-      <div style="font-size:20px;font-weight:700;font-family:'JetBrains Mono',monospace;color:${color};">${fmt(cpr)}</div>
-      <div style="font-size:10px;color:var(--text-dim);">per request</div>
-    </div>`;
-  });
-  html += '</div></div>';
-  return html;
+    {activeTab==="overview"&&<div style={{padding:24}}>
+      <div style={{display:"flex",gap:12,flexWrap:"wrap",marginBottom:24}}>
+        <StatCard label="Total Spend" value={fmt(s.totalSpend)} sub={s.activeUsers+" active users"} accent={C.accent}/>
+        <StatCard label="Avg / User" value={fmt(s.avgSpend)} sub="per month"/>
+        <StatCard label="Total Requests" value={s.totalRequests.toLocaleString()} sub={(s.totalPromptTokens/1e9).toFixed(1)+"B prompt tokens"}/>
+        <StatCard label="Top 10 Users" value={fmt(s.top10Spend)} sub={s.top10Pct+"% of total"}/>
+      </div>
+      <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:16,marginBottom:16}}>
+        <div style={{background:C.card,border:`1px solid ${C.border}`,borderRadius:10,padding:20}}>
+          <div style={{fontSize:13,fontWeight:700,marginBottom:16}}>Model Mix</div>
+          <div style={{display:"flex",height:12,borderRadius:6,overflow:"hidden",marginBottom:16,gap:2}}>
+            <div style={{width:s.sonnetPct+"%",background:C.accent}} title={"Sonnet "+s.sonnetPct+"%"}/>
+            <div style={{width:s.opusPct+"%",background:C.red}} title={"Opus "+s.opusPct+"%"}/>
+            <div style={{width:s.haikuPct+"%",background:C.green}} title={"Haiku "+s.haikuPct+"%"}/>
+          </div>
+          {[{name:"Sonnet",spend:s.sonnetSpend,pct:s.sonnetPct,color:C.accent},{name:"Opus",spend:s.opusSpend,pct:s.opusPct,color:C.red},{name:"Haiku",spend:s.haikuSpend,pct:s.haikuPct,color:C.green}].map(f=><div key={f.name} style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:8}}><div style={{display:"flex",alignItems:"center",gap:8}}><div style={{width:10,height:10,borderRadius:"50%",background:f.color}}/><span style={{fontSize:13,color:C.textMuted}}>{f.name}</span></div><div style={{textAlign:"right"}}><span style={{fontSize:13,fontWeight:700}}>{fmt(f.spend)}</span><span style={{fontSize:11,color:C.textDim,marginLeft:6}}>{f.pct}%</span></div></div>)}
+        </div>
+        <div style={{background:C.card,border:`1px solid ${C.border}`,borderRadius:10,padding:20}}>
+          <div style={{fontSize:13,fontWeight:700,marginBottom:16}}>Product Mix</div>
+          {(DATA.products||[]).filter(p=>p.spend>0).map((p,i)=><div key={p.name} style={{marginBottom:10}}><div style={{display:"flex",justifyContent:"space-between",marginBottom:3}}><span style={{fontSize:12,color:C.textMuted}}>{p.name}</span><span style={{fontSize:12,fontWeight:700}}>{fmt(p.spend)} <span style={{color:C.textDim,fontWeight:400}}>({p.pct}%)</span></span></div><div style={{height:4,background:C.border,borderRadius:2,overflow:"hidden"}}><div style={{width:p.pct+"%",height:"100%",background:[C.accent,C.accentMuted,C.blue,C.green,C.amber,C.orange][i%6]}}/></div></div>)}
+        </div>
+      </div>
+      <div style={{background:C.card,border:`1px solid ${C.border}`,borderRadius:10,padding:20}}>
+        <div style={{fontSize:13,fontWeight:700,marginBottom:14}}>Flag Summary</div>
+        <div style={{display:"flex",gap:12,flexWrap:"wrap"}}>
+          {[{label:"Max Plan Confirmed",count:(DATA.maxPlan||[]).length,color:C.red,desc:"≥$800/mo"},{label:"Max Plan Approaching",count:(DATA.maxApproaching||[]).length,color:C.orange,desc:"$400–$799"},{label:"Cowork→Opus",count:(DATA.coworkOpus||[]).length,color:"#7e22ce",desc:"auto-routed"},{label:"Opus-Heavy Chat",count:(DATA.opusHeavy||[]).length,color:C.amber,desc:"≥30% Opus Chat"},{label:"Legacy Models",count:(DATA.legacyModels||[]).length,color:C.green,desc:"deprecated versions"},{label:"Low Engagement",count:(DATA.lowEngagement||[]).length,color:C.blue,desc:"<$10/mo"}].map(f=><div key={f.label} style={{background:C.bg,border:`1px solid ${C.border}`,borderRadius:8,padding:"12px 16px",minWidth:120,flex:1}}><div style={{fontSize:22,fontWeight:800,color:f.color,letterSpacing:"-0.03em"}}>{f.count}</div><div style={{fontSize:12,fontWeight:600,marginTop:2}}>{f.label}</div><div style={{fontSize:11,color:C.textDim}}>{f.desc}</div></div>)}
+        </div>
+      </div>
+    </div>}
+
+    {activeTab==="leaderboard"&&<div style={{padding:24}}>
+      <div style={{background:C.card,border:`1px solid ${C.border}`,borderRadius:10,overflow:"hidden"}}>
+        <div style={{display:"grid",gridTemplateColumns:"28px 1fr 100px 80px 80px 80px 80px 120px",gap:8,padding:"10px 16px",background:C.bg,borderBottom:`1px solid ${C.border}`,fontSize:11,fontWeight:700,textTransform:"uppercase",letterSpacing:"0.06em",color:C.textDim}}>
+          <span>#</span><span>User</span><span style={{textAlign:"right"}}>Spend</span><span style={{textAlign:"right"}}>Reqs</span><span style={{textAlign:"right"}}>$/Req</span><span style={{textAlign:"right"}}>Opus%</span><span>Model Mix</span><span>Flags</span>
+        </div>
+        {(DATA.leaderboard||[]).map((u,i)=><div key={u.email}>
+          <div onClick={()=>setExpanded(expanded===u.email?null:u.email)} style={{display:"grid",gridTemplateColumns:"28px 1fr 100px 80px 80px 80px 80px 120px",gap:8,padding:"12px 16px",borderBottom:`1px solid ${C.border}`,cursor:"pointer",background:expanded===u.email?C.accentLight:i%2===0?C.card:"#f9fafb",alignItems:"center"}}>
+            <span style={{fontSize:12,color:C.textDim,fontWeight:600}}>{i+1}</span>
+            <div><div style={{fontSize:13,fontWeight:600}}>{u.name}</div><div style={{fontSize:11,color:C.textDim}}>{u.email}</div></div>
+            <span style={{textAlign:"right",fontSize:13,fontWeight:700}}>{fmt(u.spend)}</span>
+            <span style={{textAlign:"right",fontSize:12,color:C.textMuted}}>{u.requests.toLocaleString()}</span>
+            <span style={{textAlign:"right",fontSize:12,color:C.textMuted}}>${u.cpr.toFixed(3)}</span>
+            <span style={{textAlign:"right",fontSize:12,color:u.opusPct>30?C.red:C.textMuted}}>{u.opusPct}%</span>
+            <ModelBar modelMix={u.modelMix}/>
+            <div style={{display:"flex",gap:3,flexWrap:"wrap"}}>{u.flags.map(f=><FlagPill key={f} flag={f}/>)}</div>
+          </div>
+          {expanded===u.email&&<ExpandedUserRow user={u}/>}
+        </div>)}
+      </div>
+    </div>}
+
+    {activeTab==="allusers"&&<div style={{padding:24}}>
+      <div style={{display:"flex",gap:10,marginBottom:16,alignItems:"center"}}>
+        <input value={search} onChange={e=>setSearch(e.target.value)} placeholder="Search users..." style={{padding:"8px 12px",borderRadius:6,border:`1px solid ${C.border}`,fontSize:13,width:240,outline:"none",background:C.card}}/>
+        <select value={sort} onChange={e=>setSort(e.target.value)} style={{padding:"8px 10px",borderRadius:6,border:`1px solid ${C.border}`,fontSize:13,background:C.card}}>
+          <option value="spend">Sort: Spend</option><option value="requests">Sort: Requests</option><option value="cpr">Sort: $/Req</option>
+        </select>
+        <span style={{fontSize:12,color:C.textDim}}>{filtered.length} users</span>
+      </div>
+      <div style={{background:C.card,border:`1px solid ${C.border}`,borderRadius:10,overflow:"hidden"}}>
+        <div style={{display:"grid",gridTemplateColumns:"1fr 100px 70px 70px 80px 80px 110px",gap:8,padding:"10px 16px",background:C.bg,borderBottom:`1px solid ${C.border}`,fontSize:11,fontWeight:700,textTransform:"uppercase",letterSpacing:"0.06em",color:C.textDim}}>
+          <span>User</span><span style={{textAlign:"right"}}>Spend</span><span style={{textAlign:"right"}}>Reqs</span><span style={{textAlign:"right"}}>$/Req</span><span>Model Mix</span><span>Top Product</span><span>Flags</span>
+        </div>
+        {filtered.map((u,i)=><div key={u.email}>
+          <div onClick={()=>setAuExpanded(auExpanded===u.email?null:u.email)} style={{display:"grid",gridTemplateColumns:"1fr 100px 70px 70px 80px 80px 110px",gap:8,padding:"10px 16px",borderBottom:`1px solid ${C.border}`,cursor:"pointer",background:auExpanded===u.email?C.accentLight:i%2===0?C.card:"#f9fafb",alignItems:"center"}}>
+            <div><div style={{fontSize:12,fontWeight:600}}>{u.name}</div><div style={{fontSize:11,color:C.textDim}}>{u.email}</div></div>
+            <span style={{textAlign:"right",fontSize:12,fontWeight:700}}>{fmt(u.spend)}</span>
+            <span style={{textAlign:"right",fontSize:11,color:C.textMuted}}>{u.requests.toLocaleString()}</span>
+            <span style={{textAlign:"right",fontSize:11,color:C.textMuted}}>${u.cpr.toFixed(3)}</span>
+            <ModelBar modelMix={u.modelMix}/>
+            <span style={{fontSize:11,color:C.textMuted,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{u.topProduct}</span>
+            <div style={{display:"flex",gap:2,flexWrap:"wrap"}}>{u.flags.map(f=><FlagPill key={f} flag={f}/>)}</div>
+          </div>
+          {auExpanded===u.email&&<ExpandedUserRow user={u}/>}
+        </div>)}
+      </div>
+    </div>}
+
+    {activeTab==="flags"&&<div style={{padding:24}}>
+      <div style={{display:"flex",gap:6,marginBottom:20,flexWrap:"wrap"}}>
+        {[{id:"max",label:"Max Plan ("+(( DATA.maxPlan||[]).length+(DATA.maxApproaching||[]).length)+")"},{id:"cowork",label:"Cowork→Opus ("+((DATA.coworkOpus||[]).length)+")"},{id:"opus",label:"Opus Heavy ("+((DATA.opusHeavy||[]).length)+")"},{id:"legacy",label:"Legacy ("+((DATA.legacyModels||[]).length)+")"},{id:"loweng",label:"Low Engagement ("+((DATA.lowEngagement||[]).length)+")"}].map(s=><button key={s.id} onClick={()=>setFlagSection(s.id)} style={{padding:"6px 14px",borderRadius:99,border:`1px solid ${flagSection===s.id?C.accent:C.border}`,background:flagSection===s.id?C.accentLight:C.card,color:flagSection===s.id?C.accent:C.textMuted,fontSize:12,fontWeight:600,cursor:"pointer"}}>{s.label}</button>)}
+      </div>
+      {flagSection==="max"&&<div>
+        {(DATA.maxPlan||[]).length>0&&<div style={{background:"#fef2f2",border:"1px solid #fca5a5",borderRadius:10,padding:16,marginBottom:16}}><div style={{fontSize:13,fontWeight:700,color:"#dc2626",marginBottom:10}}>Confirmed Max Plan (≥$800/mo)</div>{(DATA.maxPlan||[]).map(u=><div key={u.email} style={{display:"flex",justifyContent:"space-between",padding:"6px 0",borderBottom:"1px solid #fca5a5",fontSize:13}}><div><span style={{fontWeight:600}}>{u.name}</span> <span style={{color:C.textDim,fontSize:11}}>{u.email}</span></div><span style={{fontWeight:700,color:"#dc2626"}}>{fmt(u.spend)}</span></div>)}</div>}
+        <div style={{background:"#fff7ed",border:"1px solid #fdba74",borderRadius:10,padding:16}}><div style={{fontSize:13,fontWeight:700,color:"#c2410c",marginBottom:10}}>Approaching Max Plan ($400–$799) — {(DATA.maxApproaching||[]).length} users</div>{(DATA.maxApproaching||[]).map(u=><div key={u.email} style={{display:"flex",justifyContent:"space-between",padding:"6px 0",borderBottom:"1px solid #fdba74",fontSize:13}}><div><span style={{fontWeight:600}}>{u.name}</span> <span style={{color:C.textDim,fontSize:11}}>{u.email}</span></div><span style={{fontWeight:700,color:"#c2410c"}}>{fmt(u.spend)}</span></div>)}</div>
+      </div>}
+      {flagSection==="cowork"&&<div style={{background:C.card,border:`1px solid ${C.border}`,borderRadius:10,overflow:"hidden"}}>
+        <div style={{padding:"10px 16px",background:C.bg,borderBottom:`1px solid ${C.border}`,fontSize:11,fontWeight:700,textTransform:"uppercase",color:C.textDim}}>{(DATA.coworkOpus||[]).length} users routing Cowork to Opus</div>
+        {(DATA.coworkOpus||[]).map((u,i)=><div key={u.email} style={{display:"grid",gridTemplateColumns:"1fr 100px 80px 80px 100px",gap:8,padding:"10px 16px",borderBottom:`1px solid ${C.border}`,background:i%2===0?C.card:"#f9fafb",alignItems:"center"}}><div><div style={{fontSize:13,fontWeight:600}}>{u.name}</div><div style={{fontSize:11,color:C.textDim}}>{u.email}</div></div><span style={{textAlign:"right",fontWeight:700,fontSize:13}}>{fmt(u.spend)}</span><span style={{textAlign:"right",fontSize:12,color:C.textMuted}}>{u.requests.toLocaleString()} reqs</span><span style={{textAlign:"right",fontSize:12,color:C.textMuted}}>{fmt(u.totalSpend)} total</span><span style={{textAlign:"right",fontSize:11,color:"#7e22ce",fontWeight:600}}>{formatModel(u.model)}</span></div>)}
+      </div>}
+      {flagSection==="opus"&&<div style={{background:C.card,border:`1px solid ${C.border}`,borderRadius:10,overflow:"hidden"}}>
+        <div style={{padding:"10px 16px",background:C.bg,borderBottom:`1px solid ${C.border}`,fontSize:11,fontWeight:700,textTransform:"uppercase",color:C.textDim}}>{(DATA.opusHeavy||[]).length} users with ≥30% Chat spend on Opus</div>
+        {(DATA.opusHeavy||[]).map((u,i)=><div key={u.email} style={{display:"grid",gridTemplateColumns:"1fr 80px 100px 100px 100px",gap:8,padding:"10px 16px",borderBottom:`1px solid ${C.border}`,background:i%2===0?C.card:"#f9fafb",alignItems:"center"}}><div><div style={{fontSize:13,fontWeight:600}}>{u.name}</div><div style={{fontSize:11,color:C.textDim}}>{u.email}</div></div><span style={{textAlign:"right",fontSize:13,fontWeight:700,color:C.red}}>{u.opusPct}%</span><span style={{textAlign:"right",fontSize:12,color:C.red}}>Opus {fmt(u.opusSpend)}</span><span style={{textAlign:"right",fontSize:12,color:C.textMuted}}>Chat {fmt(u.chatSpend)}</span><span style={{textAlign:"right",fontSize:12,color:C.textDim}}>Total {fmt(u.totalSpend)}</span></div>)}
+      </div>}
+      {flagSection==="legacy"&&<div style={{background:C.card,border:`1px solid ${C.border}`,borderRadius:10,overflow:"hidden"}}>
+        <div style={{padding:"10px 16px",background:C.bg,borderBottom:`1px solid ${C.border}`,fontSize:11,fontWeight:700,textTransform:"uppercase",color:C.textDim}}>{(DATA.legacyModels||[]).length} users on deprecated model versions</div>
+        {(DATA.legacyModels||[]).map((u,i)=><div key={u.email} style={{display:"grid",gridTemplateColumns:"1fr 100px 100px 1fr",gap:8,padding:"10px 16px",borderBottom:`1px solid ${C.border}`,background:i%2===0?C.card:"#f9fafb",alignItems:"center"}}><div><div style={{fontSize:13,fontWeight:600}}>{u.name}</div><div style={{fontSize:11,color:C.textDim}}>{u.email}</div></div><span style={{textAlign:"right",fontSize:12,fontWeight:600}}>{fmt(u.legacySpend)}</span><span style={{textAlign:"right",fontSize:12,color:C.textDim}}>Total {fmt(u.totalSpend)}</span><div style={{display:"flex",gap:4,flexWrap:"wrap"}}>{u.models.map(m=><span key={m} style={{fontSize:10,background:"#dcfce7",color:"#166534",padding:"2px 6px",borderRadius:99,fontWeight:600}}>{formatModel(m)}</span>)}</div></div>)}
+      </div>}
+      {flagSection==="loweng"&&<div>
+        <div style={{background:"#f0f9ff",border:"1px solid #7dd3fc",borderRadius:10,padding:"10px 16px",marginBottom:12,fontSize:12,color:"#0369a1"}}>Low engagement tracks seat utilization, not cost. {(DATA.lowEngagement||[]).length} users with &lt;$10 spend this month.</div>
+        <div style={{background:C.card,border:`1px solid ${C.border}`,borderRadius:10,overflow:"hidden"}}>{(DATA.lowEngagement||[]).map((u,i)=><div key={u.email} style={{display:"grid",gridTemplateColumns:"1fr 100px 80px",gap:8,padding:"10px 16px",borderBottom:`1px solid ${C.border}`,background:i%2===0?C.card:"#f9fafb",alignItems:"center"}}><div><div style={{fontSize:13,fontWeight:600}}>{u.name}</div><div style={{fontSize:11,color:C.textDim}}>{u.email}</div></div><span style={{textAlign:"right",fontSize:12}}>{fmt(u.spend)}</span><span style={{textAlign:"right",fontSize:12,color:C.textDim}}>{u.requests} reqs</span></div>)}</div>
+      </div>}
+    </div>}
+
+    {activeTab==="breakdowns"&&<div style={{padding:24}}>
+      <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:16}}>
+        <div style={{background:C.card,border:`1px solid ${C.border}`,borderRadius:10,padding:20}}>
+          <div style={{fontSize:13,fontWeight:700,marginBottom:14}}>Model Versions</div>
+          {(DATA.models||[]).map((m,i)=><div key={m.name} style={{marginBottom:10}}><div style={{display:"flex",justifyContent:"space-between",marginBottom:3,alignItems:"center"}}><div style={{display:"flex",alignItems:"center",gap:6}}><span style={{fontSize:12,color:modelColor(m.name),fontWeight:600}}>{formatModel(m.name)}</span>{m.isLegacy&&<span style={{fontSize:9,background:"#dcfce7",color:"#166534",padding:"1px 5px",borderRadius:99,fontWeight:700,textTransform:"uppercase"}}>legacy</span>}</div><span style={{fontSize:12,fontWeight:700}}>{fmt(m.spend)} <span style={{color:C.textDim,fontWeight:400}}>({m.pct}%)</span></span></div><div style={{height:4,background:C.border,borderRadius:2,overflow:"hidden"}}><div style={{width:m.pct+"%",height:"100%",background:modelColor(m.name)}}/></div><div style={{fontSize:10,color:C.textDim,marginTop:2}}>{m.requests.toLocaleString()} reqs</div></div>)}
+        </div>
+        <div style={{background:C.card,border:`1px solid ${C.border}`,borderRadius:10,padding:20}}>
+          <div style={{fontSize:13,fontWeight:700,marginBottom:14}}>Power Users (Efficient)</div>
+          <div style={{fontSize:11,color:C.textDim,marginBottom:12}}>≥85% Sonnet/Haiku | ≥$100 | ≥100 reqs</div>
+          {(DATA.powerUsers||[]).slice(0,12).map((u,i)=><div key={u.email} style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"6px 0",borderBottom:`1px solid ${C.border}`,fontSize:12}}><div><span style={{fontWeight:600}}>{u.name}</span><span style={{fontSize:10,color:C.textDim,marginLeft:6}}>{u.requests.toLocaleString()} reqs</span></div><div style={{textAlign:"right"}}><div style={{fontWeight:700}}>${u.cpr.toFixed(3)}/req</div><div style={{fontSize:10,color:C.green}}>{u.efficientPct}% efficient</div></div></div>)}
+        </div>
+      </div>
+    </div>}
+  </div>;
 }
 
-function render() {
-  renderTabs();
-  const c = document.getElementById('container');
-  if (activeTab === 'overview') c.innerHTML = renderOverview();
-  else if (activeTab === 'leaderboard') c.innerHTML = renderLeaderboard();
-  else if (activeTab === 'flags') c.innerHTML = renderFlags();
-  else if (activeTab === 'breakdown') c.innerHTML = renderBreakdown();
-}
-
-fetch('./data.json')
-  .then(r => r.json())
-  .then(d => {
-    DATA = d;
-    document.getElementById('period').textContent = d.summary.period;
-    render();
-  })
-  .catch(err => {
-    document.getElementById('container').innerHTML = '<div class="panel"><div style="color:var(--red);">Failed to load data.json: ' + esc(err.message) + '</div></div>';
-  });
+ReactDOM.createRoot(document.getElementById("root")).render(<App />);
 </script>
 </body>
 </html>
