@@ -11,8 +11,9 @@
 <style>*{box-sizing:border-box;margin:0;padding:0}body{font-family:'Inter',-apple-system,sans-serif;background:#f7f7fb;color:#18181b}button,input,select{font-family:inherit}</style>
 </head>
 <body>
-<div id="root"><div style="display:flex;align-items:center;justify-content:center;min-height:100vh;font-size:14px;color:#9ca3af">Loading...</div></div>
-<script type="text/babel" data-presets="react">
+<div id="root"><div style="display:flex;align-items:center;justify-content:center;min-height:100vh;font-size:14px;color:#9ca3af">Loading…</div></div>
+<script type="text/babel">
+
 const{useState,useMemo,useEffect}=React;
 const C={bg:"#f7f7fb",card:"#fff",border:"#e2e4ed",accent:"#4f46e5",accentLight:"#ede9fe",accentMuted:"#818cf8",text:"#18181b",textMuted:"#6b7280",textDim:"#9ca3af",green:"#10b981",amber:"#f59e0b",red:"#ef4444",orange:"#f97316",blue:"#3b82f6"};
 const fmt=v=>"$"+Number(v).toLocaleString("en-US",{minimumFractionDigits:2,maximumFractionDigits:2});
@@ -20,17 +21,103 @@ const fmt=v=>"$"+Number(v).toLocaleString("en-US",{minimumFractionDigits:2,maxim
 function fmtM(m){if(!m)return"";const s=m.toLowerCase();if(s.includes("opus-4-8"))return"Opus 4.8";if(s.includes("opus-4-7"))return"Opus 4.7";if(s.includes("opus-4-6"))return"Opus 4.6";if(s.includes("opus-4-5"))return"Opus 4.5";if(s.includes("3-opus")||s.includes("opus-3"))return"Claude 3 Opus";if(s.includes("sonnet-4-6"))return"Sonnet 4.6";if(s.includes("sonnet-4-5"))return"Sonnet 4.5";if(s.includes("sonnet-4-2")||s.includes("sonnet-4-20"))return"Sonnet 4 (legacy)";if(s.includes("haiku-4-5"))return"Haiku 4.5";return m;}
 function mColor(m){if(!m)return C.textDim;const s=m.toLowerCase();if(s.includes("opus"))return C.red;if(s.includes("sonnet"))return C.accent;if(s.includes("haiku"))return C.green;return C.textDim;}
 
-function DeltaBadge({val,suffix="%",invert=false}){if(val===null||val===undefined)return null;const isGood=invert?val<0:val>0;const isNeutral=val===0;const color=isNeutral?C.textDim:isGood?C.green:C.red;const bg=isNeutral?"#f3f4f6":isGood?"#f0fdf4":"#fef2f2";const sign=val>0?"+":"";return React.createElement("span",{style:{background:bg,color,fontSize:11,fontWeight:700,padding:"2px 7px",borderRadius:99,letterSpacing:"0.02em",whiteSpace:"nowrap"}},sign+val+suffix);}
+function DeltaBadge({val,suffix,invert}){
+  suffix=suffix||"%";invert=invert||false;
+  if(val===null||val===undefined)return null;
+  const isGood=invert?val<0:val>0;
+  const isNeutral=val===0;
+  const color=isNeutral?C.textDim:isGood?C.green:C.red;
+  const bg=isNeutral?"#f3f4f6":isGood?"#f0fdf4":"#fef2f2";
+  const sign=val>0?"+":"";
+  return React.createElement("span",{style:{background:bg,color,fontSize:11,fontWeight:700,padding:"2px 7px",borderRadius:99,whiteSpace:"nowrap"}},sign+val+suffix);
+}
 
-function FlagPill({flag}){const cols={"max-plan":{bg:"#fef2f2",tx:"#dc2626",lb:"Max Plan"},"approaching":{bg:"#fff7ed",tx:"#c2410c",lb:"Approaching"},"cowork-opus":{bg:"#fdf4ff",tx:"#7e22ce",lb:"Cowork→Opus"},"opus-heavy":{bg:"#fef3c7",tx:"#92400e",lb:"Opus Heavy"},"legacy":{bg:"#f0fdf4",tx:"#166534",lb:"Legacy"},"low-engagement":{bg:"#f0f9ff",tx:"#0369a1",lb:"Low Usage"}};const c=cols[flag]||{bg:C.accentLight,tx:C.accent,lb:flag};return React.createElement("span",{style:{background:c.bg,color:c.tx,fontSize:10,fontWeight:700,padding:"2px 7px",borderRadius:99,letterSpacing:"0.04em",textTransform:"uppercase",whiteSpace:"nowrap",margin:"1px 2px"}},c.lb);}
+function FlagPill({flag}){
+  const cols={"max-plan":{bg:"#fef2f2",tx:"#dc2626",lb:"Max Plan"},"approaching":{bg:"#fff7ed",tx:"#c2410c",lb:"Approaching"},"cowork-opus":{bg:"#fdf4ff",tx:"#7e22ce",lb:"Cowork\u2192Opus"},"opus-heavy":{bg:"#fef3c7",tx:"#92400e",lb:"Opus Heavy"},"legacy":{bg:"#f0fdf4",tx:"#166534",lb:"Legacy"},"low-engagement":{bg:"#f0f9ff",tx:"#0369a1",lb:"Low Usage"}};
+  const c=cols[flag]||{bg:C.accentLight,tx:C.accent,lb:flag};
+  return React.createElement("span",{style:{background:c.bg,color:c.tx,fontSize:10,fontWeight:700,padding:"2px 7px",borderRadius:99,letterSpacing:"0.04em",textTransform:"uppercase",whiteSpace:"nowrap",margin:"1px 2px"}},c.lb);
+}
 
-function MBar({modelMix}){if(!modelMix)return null;const tot=Object.values(modelMix).reduce((s,v)=>s+v.spend,0)||1;return React.createElement("div",{style:{display:"flex",height:6,borderRadius:3,overflow:"hidden",width:80,gap:1}},Object.entries(modelMix).sort((a,b)=>b[1].spend-a[1].spend).map(([m,v])=>React.createElement("div",{key:m,style:{width:`${v.spend/tot*100}%`,background:mColor(m),minWidth:v.spend>0?1:0},title:fmtM(m)+": "+fmt(v.spend)})));}
+function MBar({modelMix}){
+  if(!modelMix)return null;
+  const tot=Object.values(modelMix).reduce((s,v)=>s+v.spend,0)||1;
+  return React.createElement("div",{style:{display:"flex",height:6,borderRadius:3,overflow:"hidden",width:80,gap:1}},
+    Object.entries(modelMix).sort((a,b)=>b[1].spend-a[1].spend).map(([m,v])=>
+      React.createElement("div",{key:m,style:{width:`${v.spend/tot*100}%`,background:mColor(m),minWidth:v.spend>0?1:0},title:fmtM(m)+": "+fmt(v.spend)})));
+}
 
-function SparkLine({values,color,height=28,width=120}){if(!values||values.length<2)return null;const max=Math.max(...values);const min=Math.min(...values);const range=max-min||1;const pad=3;const iH=height-pad*2;const iW=width-pad*2;const pts=values.map((v,i)=>`${pad+(i/(values.length-1))*iW},${pad+iH-((v-min)/range)*iH}`).join(" ");const lx=pad+iW;const ly=pad+iH-((values[values.length-1]-min)/range)*iH;return React.createElement("svg",{viewBox:`0 0 ${width} ${height}`,style:{width,height}},React.createElement("polyline",{points:pts,fill:"none",stroke:color,strokeWidth:"1.5",strokeLinejoin:"round"}),React.createElement("circle",{cx:lx,cy:ly,r:"2",fill:color}));}
+function SparkLine({values,color,height,width}){
+  height=height||28;width=width||120;
+  if(!values||values.length<2)return null;
+  const max=Math.max(...values);
+  const min=Math.min(...values);
+  const range=max-min||1;
+  const pad=3;
+  const iH=height-pad*2;
+  const iW=width-pad*2;
+  const pts=values.map((v,i)=>pad+(i/(values.length-1))*iW+","+(pad+iH-((v-min)/range)*iH)).join(" ");
+  const lx=pad+iW;
+  const ly=pad+iH-((values[values.length-1]-min)/range)*iH;
+  return React.createElement("svg",{viewBox:"0 0 "+width+" "+height,style:{width,height}},
+    React.createElement("polyline",{points:pts,fill:"none",stroke:color,strokeWidth:"1.5",strokeLinejoin:"round"}),
+    React.createElement("circle",{cx:lx,cy:ly,r:"2",fill:color}));
+}
 
-function ExpandRow({user}){const prods=Object.entries(user.productMix||{}).sort((a,b)=>b[1].spend-a[1].spend);const models=Object.entries(user.modelMix||{}).sort((a,b)=>b[1].spend-a[1].spend);const mx=user.productModelMatrix||{};const allM=[...new Set(Object.values(mx).flatMap(m=>Object.keys(m)))].sort();const allP=Object.keys(mx).sort((a,b)=>{const sa=Object.values(mx[a]).reduce((s,v)=>s+v.spend,0);const sb=Object.values(mx[b]).reduce((s,v)=>s+v.spend,0);return sb-sa;});return React.createElement("div",{style:{padding:"16px 24px 20px",background:"#f9fafb",borderTop:`1px solid ${C.border}`,display:"grid",gridTemplateColumns:"1fr 1fr 2fr",gap:20}},React.createElement("div",null,React.createElement("div",{style:{fontSize:11,fontWeight:700,textTransform:"uppercase",letterSpacing:"0.08em",color:C.textDim,marginBottom:8}},"Product Mix"),prods.map(([p,v])=>React.createElement("div",{key:p,style:{display:"flex",justifyContent:"space-between",fontSize:12,marginBottom:4}},React.createElement("span",{style:{color:C.textMuted}},p),React.createElement("span",{style:{fontWeight:600}},fmt(v.spend))))),React.createElement("div",null,React.createElement("div",{style:{fontSize:11,fontWeight:700,textTransform:"uppercase",letterSpacing:"0.08em",color:C.textDim,marginBottom:8}},"Model Mix"),models.map(([m,v])=>React.createElement("div",{key:m,style:{display:"flex",justifyContent:"space-between",fontSize:12,marginBottom:4}},React.createElement("span",{style:{color:mColor(m)}},fmtM(m)),React.createElement("span",{style:{fontWeight:600,color:C.text}},fmt(v.spend))))),React.createElement("div",null,React.createElement("div",{style:{fontSize:11,fontWeight:700,textTransform:"uppercase",letterSpacing:"0.08em",color:C.textDim,marginBottom:8}},"Product × Model"),React.createElement("table",{style:{fontSize:11,borderCollapse:"collapse",width:"100%"}},React.createElement("thead",null,React.createElement("tr",null,React.createElement("th",{style:{textAlign:"left",padding:"2px 8px 2px 0",color:C.textDim,fontWeight:600}},"Product"),...allM.map(m=>React.createElement("th",{key:m,style:{textAlign:"right",padding:"2px 4px",color:mColor(m),fontWeight:600}},fmtM(m))),React.createElement("th",{style:{textAlign:"right",padding:"2px 0 2px 4px",color:C.textDim,fontWeight:600}},"Total"))),React.createElement("tbody",null,...allP.map((p,i)=>{const rT=allM.reduce((s,m)=>s+(mx[p]?.[m]?.spend||0),0);return React.createElement("tr",{key:p,style:{background:i%2===0?"transparent":"#f0f0f5"}},React.createElement("td",{style:{padding:"2px 8px 2px 0",color:C.textMuted}},p),...allM.map(m=>React.createElement("td",{key:m,style:{textAlign:"right",padding:"2px 4px",color:mx[p]?.[m]?.spend>0?C.text:C.textDim}},mx[p]?.[m]?.spend>0?fmt(mx[p][m].spend):"—")),React.createElement("td",{style:{textAlign:"right",padding:"2px 0 2px 4px",fontWeight:700,color:C.text}},fmt(rT)));}),...[React.createElement("tr",{key:"tot",style:{borderTop:`1px solid ${C.border}`}},React.createElement("td",{style:{padding:"4px 8px 2px 0",fontWeight:700}},"Total"),...allM.map(m=>{const mT=allP.reduce((s,p)=>s+(mx[p]?.[m]?.spend||0),0);return React.createElement("td",{key:m,style:{textAlign:"right",padding:"4px 4px 2px",fontWeight:700,color:mColor(m)}},fmt(mT));}),React.createElement("td",{style:{textAlign:"right",padding:"4px 0 2px 4px",fontWeight:700,color:C.text}},fmt(Object.values(user.modelMix||{}).reduce((s,v)=>s+v.spend,0))))]))));}
+function ExpandRow({user}){
+  const prods=Object.entries(user.productMix||{}).sort((a,b)=>b[1].spend-a[1].spend);
+  const models=Object.entries(user.modelMix||{}).sort((a,b)=>b[1].spend-a[1].spend);
+  const mx=user.productModelMatrix||{};
+  const allM=[...new Set(Object.values(mx).flatMap(m=>Object.keys(m)))].sort();
+  const allP=Object.keys(mx).sort((a,b)=>{
+    const sa=Object.values(mx[a]).reduce((s,v)=>s+v.spend,0);
+    const sb=Object.values(mx[b]).reduce((s,v)=>s+v.spend,0);
+    return sb-sa;
+  });
+  return React.createElement("div",{style:{padding:"16px 24px 20px",background:"#f9fafb",borderTop:"1px solid "+C.border,display:"grid",gridTemplateColumns:"1fr 1fr 2fr",gap:20}},
+    React.createElement("div",null,
+      React.createElement("div",{style:{fontSize:11,fontWeight:700,textTransform:"uppercase",color:C.textDim,marginBottom:8}},"Product Mix"),
+      prods.map(([p,v])=>React.createElement("div",{key:p,style:{display:"flex",justifyContent:"space-between",fontSize:12,marginBottom:4}},
+        React.createElement("span",{style:{color:C.textMuted}},p),
+        React.createElement("span",{style:{fontWeight:600}},fmt(v.spend))))),
+    React.createElement("div",null,
+      React.createElement("div",{style:{fontSize:11,fontWeight:700,textTransform:"uppercase",color:C.textDim,marginBottom:8}},"Model Mix"),
+      models.map(([m,v])=>React.createElement("div",{key:m,style:{display:"flex",justifyContent:"space-between",fontSize:12,marginBottom:4}},
+        React.createElement("span",{style:{color:mColor(m)}},fmtM(m)),
+        React.createElement("span",{style:{fontWeight:600,color:C.text}},fmt(v.spend))))),
+    React.createElement("div",null,
+      React.createElement("div",{style:{fontSize:11,fontWeight:700,textTransform:"uppercase",color:C.textDim,marginBottom:8}},"Product \u00d7 Model"),
+      React.createElement("table",{style:{fontSize:11,borderCollapse:"collapse",width:"100%"}},
+        React.createElement("thead",null,
+          React.createElement("tr",null,
+            React.createElement("th",{style:{textAlign:"left",padding:"2px 8px 2px 0",color:C.textDim,fontWeight:600}},"Product"),
+            allM.map(m=>React.createElement("th",{key:m,style:{textAlign:"right",padding:"2px 4px",color:mColor(m),fontWeight:600}},fmtM(m))),
+            React.createElement("th",{style:{textAlign:"right",padding:"2px 0 2px 4px",color:C.textDim,fontWeight:600}},"Total"))),
+        React.createElement("tbody",null,
+          allP.map((p,i)=>{
+            const rT=allM.reduce((s,m)=>s+(mx[p]&&mx[p][m]?mx[p][m].spend:0),0);
+            return React.createElement("tr",{key:p,style:{background:i%2===0?"transparent":"#f0f0f5"}},
+              React.createElement("td",{style:{padding:"2px 8px 2px 0",color:C.textMuted}},p),
+              allM.map(m=>React.createElement("td",{key:m,style:{textAlign:"right",padding:"2px 4px",color:mx[p]&&mx[p][m]&&mx[p][m].spend>0?C.text:C.textDim}},mx[p]&&mx[p][m]&&mx[p][m].spend>0?fmt(mx[p][m].spend):"—")),
+              React.createElement("td",{style:{textAlign:"right",padding:"2px 0 2px 4px",fontWeight:700,color:C.text}},fmt(rT)));
+          }),
+          React.createElement("tr",{key:"tot",style:{borderTop:"1px solid "+C.border}},
+            React.createElement("td",{style:{padding:"4px 8px 2px 0",fontWeight:700}},"Total"),
+            allM.map(m=>{
+              const mT=allP.reduce((s,p)=>s+(mx[p]&&mx[p][m]?mx[p][m].spend:0),0);
+              return React.createElement("td",{key:m,style:{textAlign:"right",padding:"4px 4px 2px",fontWeight:700,color:mColor(m)}},fmt(mT));
+            }),
+            React.createElement("td",{style:{textAlign:"right",padding:"4px 0 2px 4px",fontWeight:700,color:C.text}},
+              fmt(Object.values(user.modelMix||{}).reduce((s,v)=>s+v.spend,0))))))));
+}
 
-function StatCard({label,value,sub,accent,delta,deltaInvert=false}){return React.createElement("div",{style:{background:C.card,border:`1px solid ${C.border}`,borderRadius:10,padding:"16px 20px",flex:1,minWidth:140}},React.createElement("div",{style:{fontSize:11,fontWeight:700,textTransform:"uppercase",letterSpacing:"0.08em",color:C.textDim,marginBottom:6}},label),React.createElement("div",{style:{display:"flex",alignItems:"baseline",gap:8,flexWrap:"wrap"}},React.createElement("div",{style:{fontSize:24,fontWeight:800,letterSpacing:"-0.03em",color:accent||C.text}},value),delta!==undefined&&delta!==null&&React.createElement(DeltaBadge,{val:delta,suffix:"%",invert:deltaInvert})),sub&&React.createElement("div",{style:{fontSize:12,color:C.textMuted,marginTop:2}},sub));}
+function StatCard({label,value,sub,accent,delta,deltaInvert}){
+  return React.createElement("div",{style:{background:C.card,border:"1px solid "+C.border,borderRadius:10,padding:"16px 20px",flex:1,minWidth:140}},
+    React.createElement("div",{style:{fontSize:11,fontWeight:700,textTransform:"uppercase",letterSpacing:"0.08em",color:C.textDim,marginBottom:6}},label),
+    React.createElement("div",{style:{display:"flex",alignItems:"baseline",gap:8,flexWrap:"wrap"}},
+      React.createElement("div",{style:{fontSize:24,fontWeight:800,letterSpacing:"-0.03em",color:accent||C.text}},value),
+      delta!==undefined&&delta!==null&&React.createElement(DeltaBadge,{val:delta,suffix:"%",invert:deltaInvert||false})),
+    sub&&React.createElement("div",{style:{fontSize:12,color:C.textMuted,marginTop:2}},sub));
+}
 
 function App(){
   const[DATA,setDATA]=useState(null);
@@ -41,128 +128,329 @@ function App(){
   const[sort,setSort]=useState("spend");
   const[flagSec,setFlagSec]=useState("max");
 
-  useEffect(()=>{fetch("./data.json").then(r=>r.json()).then(setDATA).catch(e=>setDATA({error:e.message}));},[]);
+  useEffect(()=>{
+    fetch("./data.json")
+      .then(r=>r.json())
+      .then(setDATA)
+      .catch(e=>setDATA({error:e.message}));
+  },[]);
+
   if(!DATA)return React.createElement("div",{style:{display:"flex",alignItems:"center",justifyContent:"center",minHeight:"100vh",color:C.textMuted}},"Loading...");
-  if(DATA.error)return React.createElement("div",{style:{padding:40,color:C.red}},"Error: "+DATA.error);
+  if(DATA.error)return React.createElement("div",{style:{padding:40,color:C.red}},"Error loading data.json: "+DATA.error);
 
   const s=DATA.summary;
-  const mom=DATA.trends?.mom;
+  const mom=DATA.trends&&DATA.trends.mom;
+  const months=(DATA.trends&&DATA.trends.months)||[];
   const TABS=[{id:"overview",lb:"Overview"},{id:"leaderboard",lb:"Leaderboard"},{id:"allusers",lb:"All Users"},{id:"trends",lb:"Trends"},{id:"flags",lb:"Flags & Alerts"},{id:"breakdowns",lb:"Breakdowns"}];
-  const filtered=(DATA.allUsers||[]).filter(u=>!search||u.name.toLowerCase().includes(search.toLowerCase())||u.email.toLowerCase().includes(search.toLowerCase())).sort((a,b)=>sort==="spend"?b.spend-a.spend:sort==="requests"?b.requests-a.requests:b.cpr-a.cpr);
-  const months=DATA.trends?.months||[];
+  const filtered=useMemo(()=>{
+    let u=(DATA.allUsers||[]).filter(u=>!search||u.name.toLowerCase().includes(search.toLowerCase())||u.email.toLowerCase().includes(search.toLowerCase()));
+    u.sort((a,b)=>sort==="spend"?b.spend-a.spend:sort==="requests"?b.requests-a.requests:b.cpr-a.cpr);
+    return u;
+  },[search,sort,DATA]);
 
-  const TrendHeader=()=>React.createElement("div",{style:{display:"grid",gridTemplateColumns:"160px 1fr 90px 90px 100px",gap:12,padding:"0 0 8px",borderBottom:`2px solid ${C.border}`,marginBottom:4}},["Metric","Trend","April","May","MoM"].map(h=>React.createElement("span",{key:h,style:{textAlign:h==="April"||h==="May"?"right":"h"==="MoM"?"center":"left",fontSize:11,fontWeight:700,textTransform:"uppercase",color:C.textDim}},h)));
-
-  const TrendRow=({label,values,fmtFn=fmt,color=C.accent,aprilVal,mayVal,deltaPct,deltaInvert=false})=>React.createElement("div",{style:{display:"grid",gridTemplateColumns:"160px 1fr 90px 90px 100px",gap:12,alignItems:"center",padding:"10px 0",borderBottom:`1px solid ${C.border}`}},
-    React.createElement("span",{style:{fontSize:13,color:C.textMuted}},label),
-    React.createElement(SparkLine,{values,color,width:120,height:28}),
-    React.createElement("span",{style:{textAlign:"right",fontSize:12,color:C.textDim}},fmtFn(aprilVal)),
-    React.createElement("span",{style:{textAlign:"right",fontSize:13,fontWeight:700}},fmtFn(mayVal)),
-    React.createElement("div",{style:{display:"flex",justifyContent:"flex-start"}},deltaPct!==null&&deltaPct!==undefined&&React.createElement(DeltaBadge,{val:deltaPct,suffix:"%",invert:deltaInvert})));
-
-  return React.createElement("div",{style:{background:C.bg,minHeight:"100vh"}},
-    React.createElement("div",{style:{padding:"20px 24px 0",borderBottom:`1px solid ${C.border}`,background:C.card}},
+  function Header(){
+    return React.createElement("div",{style:{padding:"20px 24px 0",borderBottom:"1px solid "+C.border,background:C.card}},
       React.createElement("div",{style:{display:"flex",alignItems:"baseline",gap:12,marginBottom:4,flexWrap:"wrap"}},
-        React.createElement("h1",{style:{fontSize:20,fontWeight:800,letterSpacing:"-0.03em"}},"Claude Usage Analysis"),
+        React.createElement("h1",{style:{fontSize:20,fontWeight:800,margin:0,letterSpacing:"-0.03em"}},"Claude Usage Analysis"),
         React.createElement("span",{style:{fontSize:12,color:C.textMuted,fontFamily:"monospace"}},s.monthOf),
         React.createElement("span",{style:{fontSize:11,background:C.accentLight,color:C.accent,padding:"2px 8px",borderRadius:99,fontWeight:700}},"Monthly"),
         React.createElement("span",{style:{fontSize:11,color:C.textDim,marginLeft:"auto",fontFamily:"monospace"}},months.length+" months in history")),
-      React.createElement("div",{style:{display:"flex",gap:0,marginTop:12}},TABS.map(t=>React.createElement("button",{key:t.id,onClick:()=>setTab(t.id),style:{background:"none",border:"none",color:tab===t.id?C.accent:C.textDim,fontSize:13,fontWeight:600,padding:"8px 16px",cursor:"pointer",borderBottom:tab===t.id?`2px solid ${C.accent}`:"2px solid transparent",marginBottom:-1}},t.lb)))),
+      React.createElement("div",{style:{display:"flex",gap:0,marginTop:12}},
+        TABS.map(t=>React.createElement("button",{key:t.id,onClick:()=>setTab(t.id),style:{background:"none",border:"none",color:tab===t.id?C.accent:C.textDim,fontSize:13,fontWeight:600,padding:"8px 16px",cursor:"pointer",borderBottom:tab===t.id?"2px solid "+C.accent:"2px solid transparent",marginBottom:-1}},t.lb))));
+  }
 
-    tab==="overview"&&React.createElement("div",{style:{padding:24}},
+  function OverviewTab(){
+    const modelFamilies=[
+      {name:"Sonnet",spend:s.sonnetSpend,pct:s.sonnetPct,color:C.accent,d:mom&&mom.sonnetPct&&mom.sonnetPct.delta},
+      {name:"Opus",spend:s.opusSpend,pct:s.opusPct,color:C.red,d:mom&&mom.opusPct&&mom.opusPct.delta,inv:true},
+      {name:"Haiku",spend:s.haikuSpend,pct:s.haikuPct,color:C.green}
+    ];
+    const flagDefs=[
+      {label:"Max Plan Confirmed",count:(DATA.maxPlan||[]).length,color:C.red,desc:"\u2265$800/mo",mk:"maxPlanConfirmed"},
+      {label:"Max Plan Approaching",count:(DATA.maxApproaching||[]).length,color:C.orange,desc:"$400\u2013$799",mk:"maxPlanApproaching"},
+      {label:"Cowork\u2192Opus",count:(DATA.coworkOpus||[]).length,color:"#7e22ce",desc:"auto-routed",mk:"coworkOpus"},
+      {label:"Opus-Heavy Chat",count:(DATA.opusHeavy||[]).length,color:C.amber,desc:"\u226530% Opus",mk:"opusHeavy"},
+      {label:"Legacy Models",count:(DATA.legacyModels||[]).length,color:C.green,desc:"deprecated",mk:"legacy"},
+      {label:"Low Engagement",count:(DATA.lowEngagement||[]).length,color:C.blue,desc:"<$10/mo",mk:"lowEngagement"}
+    ];
+    return React.createElement("div",{style:{padding:24}},
       React.createElement("div",{style:{display:"flex",gap:12,flexWrap:"wrap",marginBottom:24}},
-        React.createElement(StatCard,{label:"Total Spend",value:fmt(s.totalSpend),sub:s.activeUsers+" active users",accent:C.accent,delta:mom?.spend?.deltaPct}),
-        React.createElement(StatCard,{label:"Avg / User",value:fmt(s.avgSpend),sub:"per month",delta:mom?.avgSpend?.deltaPct}),
+        React.createElement(StatCard,{label:"Total Spend",value:fmt(s.totalSpend),sub:s.activeUsers+" active users",accent:C.accent,delta:mom&&mom.spend&&mom.spend.deltaPct}),
+        React.createElement(StatCard,{label:"Avg / User",value:fmt(s.avgSpend),sub:"per month",delta:mom&&mom.avgSpend&&mom.avgSpend.deltaPct}),
         React.createElement(StatCard,{label:"Total Requests",value:s.totalRequests.toLocaleString(),sub:(s.totalPromptTokens/1e9).toFixed(1)+"B prompt tokens"}),
         React.createElement(StatCard,{label:"Top 10 Users",value:fmt(s.top10Spend),sub:s.top10Pct+"% of total"})),
-      mom&&React.createElement("div",{style:{background:C.card,border:`1px solid ${C.border}`,borderRadius:10,padding:"14px 20px",marginBottom:16,display:"flex",gap:24,flexWrap:"wrap",alignItems:"center"}},
+      mom&&React.createElement("div",{style:{background:C.card,border:"1px solid "+C.border,borderRadius:10,padding:"14px 20px",marginBottom:16,display:"flex",gap:24,flexWrap:"wrap",alignItems:"center"}},
         React.createElement("div",{style:{fontSize:12,fontWeight:700,color:C.textDim,textTransform:"uppercase",letterSpacing:"0.06em"}},"vs April 2026"),
-        ...[{label:"Spend",val:mom.spend.deltaPct},{label:"Users",val:mom.users.deltaPct},{label:"Avg/User",val:mom.avgSpend.deltaPct},{label:"Opus spend",val:mom.opusSpend.deltaPct,inv:true},{label:"Opus %",val:mom.opusPct.delta,sfx:"pp",inv:true},{label:"Sonnet %",val:mom.sonnetPct.delta,sfx:"pp"}].map(({label,val,sfx="%",inv=false})=>React.createElement("div",{key:label,style:{display:"flex",flexDirection:"column",gap:3}},React.createElement("div",{style:{fontSize:11,color:C.textDim}},label),React.createElement(DeltaBadge,{val,suffix:sfx,invert:inv})))),
+        [{label:"Spend",val:mom.spend.deltaPct},{label:"Users",val:mom.users.deltaPct},{label:"Avg/User",val:mom.avgSpend.deltaPct},{label:"Opus spend",val:mom.opusSpend.deltaPct,inv:true},{label:"Opus %",val:mom.opusPct.delta,sfx:"pp",inv:true},{label:"Sonnet %",val:mom.sonnetPct.delta,sfx:"pp"}]
+          .map(function(x){
+            return React.createElement("div",{key:x.label,style:{display:"flex",flexDirection:"column",gap:3}},
+              React.createElement("div",{style:{fontSize:11,color:C.textDim}},x.label),
+              React.createElement(DeltaBadge,{val:x.val,suffix:x.sfx||"%",invert:x.inv||false}));
+          })),
       React.createElement("div",{style:{display:"grid",gridTemplateColumns:"1fr 1fr",gap:16,marginBottom:16}},
-        React.createElement("div",{style:{background:C.card,border:`1px solid ${C.border}`,borderRadius:10,padding:20}},
+        React.createElement("div",{style:{background:C.card,border:"1px solid "+C.border,borderRadius:10,padding:20}},
           React.createElement("div",{style:{fontSize:13,fontWeight:700,marginBottom:16}},"Model Mix"),
-          React.createElement("div",{style:{display:"flex",height:12,borderRadius:6,overflow:"hidden",marginBottom:16,gap:2}},React.createElement("div",{style:{width:s.sonnetPct+"%",background:C.accent}}),React.createElement("div",{style:{width:s.opusPct+"%",background:C.red}}),React.createElement("div",{style:{width:s.haikuPct+"%",background:C.green}})),
-          [{name:"Sonnet",spend:s.sonnetSpend,pct:s.sonnetPct,color:C.accent,d:mom?.sonnetPct?.delta},{name:"Opus",spend:s.opusSpend,pct:s.opusPct,color:C.red,d:mom?.opusPct?.delta,inv:true},{name:"Haiku",spend:s.haikuSpend,pct:s.haikuPct,color:C.green}].map(f=>React.createElement("div",{key:f.name,style:{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:8}},React.createElement("div",{style:{display:"flex",alignItems:"center",gap:8}},React.createElement("div",{style:{width:10,height:10,borderRadius:"50%",background:f.color}}),React.createElement("span",{style:{fontSize:13,color:C.textMuted}},f.name)),React.createElement("div",{style:{display:"flex",alignItems:"center",gap:8}},React.createElement("span",{style:{fontSize:13,fontWeight:700}},fmt(f.spend)),React.createElement("span",{style:{fontSize:11,color:C.textDim}},f.pct+"%"),f.d!==undefined&&React.createElement(DeltaBadge,{val:f.d,suffix:"pp",invert:f.inv}))))),
-        React.createElement("div",{style:{background:C.card,border:`1px solid ${C.border}`,borderRadius:10,padding:20}},
+          React.createElement("div",{style:{display:"flex",height:12,borderRadius:6,overflow:"hidden",marginBottom:16,gap:2}},
+            React.createElement("div",{style:{width:s.sonnetPct+"%",background:C.accent}}),
+            React.createElement("div",{style:{width:s.opusPct+"%",background:C.red}}),
+            React.createElement("div",{style:{width:s.haikuPct+"%",background:C.green}})),
+          modelFamilies.map(function(f){
+            return React.createElement("div",{key:f.name,style:{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:8}},
+              React.createElement("div",{style:{display:"flex",alignItems:"center",gap:8}},
+                React.createElement("div",{style:{width:10,height:10,borderRadius:"50%",background:f.color}}),
+                React.createElement("span",{style:{fontSize:13,color:C.textMuted}},f.name)),
+              React.createElement("div",{style:{display:"flex",alignItems:"center",gap:8}},
+                React.createElement("span",{style:{fontSize:13,fontWeight:700}},fmt(f.spend)),
+                React.createElement("span",{style:{fontSize:11,color:C.textDim}},f.pct+"%"),
+                f.d!=null&&React.createElement(DeltaBadge,{val:f.d,suffix:"pp",invert:f.inv||false})));
+          })),
+        React.createElement("div",{style:{background:C.card,border:"1px solid "+C.border,borderRadius:10,padding:20}},
           React.createElement("div",{style:{fontSize:13,fontWeight:700,marginBottom:16}},"Product Mix"),
-          (DATA.products||[]).filter(p=>p.spend>0).map((p,i)=>{const md=mom?.products?.[p.name]?.deltaPct;return React.createElement("div",{key:p.name,style:{marginBottom:10}},React.createElement("div",{style:{display:"flex",justifyContent:"space-between",marginBottom:3,alignItems:"center"}},React.createElement("span",{style:{fontSize:12,color:C.textMuted}},p.name),React.createElement("div",{style:{display:"flex",gap:8,alignItems:"center"}},React.createElement("span",{style:{fontSize:12,fontWeight:700}},fmt(p.spend)+" ("+p.pct+"%)"),md!==null&&md!==undefined&&React.createElement(DeltaBadge,{val:md,suffix:"%"}))),React.createElement("div",{style:{height:4,background:C.border,borderRadius:2,overflow:"hidden"}},React.createElement("div",{style:{width:p.pct+"%",height:"100%",background:[C.accent,C.accentMuted,C.blue,C.green,C.amber,C.orange][i%6]}})));}))),
-      React.createElement("div",{style:{background:C.card,border:`1px solid ${C.border}`,borderRadius:10,padding:20}},
+          (DATA.products||[]).filter(function(p){return p.spend>0;}).map(function(p,i){
+            var md=mom&&mom.products&&mom.products[p.name]&&mom.products[p.name].deltaPct;
+            return React.createElement("div",{key:p.name,style:{marginBottom:10}},
+              React.createElement("div",{style:{display:"flex",justifyContent:"space-between",marginBottom:3,alignItems:"center"}},
+                React.createElement("span",{style:{fontSize:12,color:C.textMuted}},p.name),
+                React.createElement("div",{style:{display:"flex",gap:8,alignItems:"center"}},
+                  React.createElement("span",{style:{fontSize:12,fontWeight:700}},fmt(p.spend)+" ("+p.pct+"%)"),
+                  md!=null&&React.createElement(DeltaBadge,{val:md,suffix:"%"}))),
+              React.createElement("div",{style:{height:4,background:C.border,borderRadius:2,overflow:"hidden"}},
+                React.createElement("div",{style:{width:p.pct+"%",height:"100%",background:[C.accent,C.accentMuted,C.blue,C.green,C.amber,C.orange][i%6]}})));
+          }))),
+      React.createElement("div",{style:{background:C.card,border:"1px solid "+C.border,borderRadius:10,padding:20}},
         React.createElement("div",{style:{fontSize:13,fontWeight:700,marginBottom:14}},"Flag Summary"),
         React.createElement("div",{style:{display:"flex",gap:12,flexWrap:"wrap"}},
-          [{label:"Max Plan Confirmed",count:(DATA.maxPlan||[]).length,color:C.red,desc:"≥$800/mo",mk:"maxPlanConfirmed"},{label:"Max Plan Approaching",count:(DATA.maxApproaching||[]).length,color:C.orange,desc:"$400–$799",mk:"maxPlanApproaching"},{label:"Cowork→Opus",count:(DATA.coworkOpus||[]).length,color:"#7e22ce",desc:"auto-routed",mk:"coworkOpus"},{label:"Opus-Heavy Chat",count:(DATA.opusHeavy||[]).length,color:C.amber,desc:"≥30% Opus",mk:"opusHeavy"},{label:"Legacy Models",count:(DATA.legacyModels||[]).length,color:C.green,desc:"deprecated",mk:"legacy"},{label:"Low Engagement",count:(DATA.lowEngagement||[]).length,color:C.blue,desc:"<$10/mo",mk:"lowEngagement"}].map(f=>{const ap=mom?.flags?.[f.mk]?.april;const fd=ap!==null&&ap!==undefined?f.count-ap:null;return React.createElement("div",{key:f.label,style:{background:C.bg,border:`1px solid ${C.border}`,borderRadius:8,padding:"12px 16px",minWidth:110,flex:1}},React.createElement("div",{style:{display:"flex",alignItems:"baseline",gap:8,marginBottom:2}},React.createElement("div",{style:{fontSize:22,fontWeight:800,color:f.color,letterSpacing:"-0.03em"}},f.count),fd!==null&&React.createElement(DeltaBadge,{val:fd,suffix:"",invert:f.label!=="Max Plan Confirmed"&&f.label!=="Max Plan Approaching"})),React.createElement("div",{style:{fontSize:12,fontWeight:600}},f.label),React.createElement("div",{style:{fontSize:11,color:C.textDim}},f.desc));}))));,
+          flagDefs.map(function(f){
+            var ap=mom&&mom.flags&&mom.flags[f.mk]&&mom.flags[f.mk].april;
+            var fd=(ap!=null)?f.count-ap:null;
+            return React.createElement("div",{key:f.label,style:{background:C.bg,border:"1px solid "+C.border,borderRadius:8,padding:"12px 16px",minWidth:110,flex:1}},
+              React.createElement("div",{style:{display:"flex",alignItems:"baseline",gap:8,marginBottom:2}},
+                React.createElement("div",{style:{fontSize:22,fontWeight:800,color:f.color,letterSpacing:"-0.03em"}},f.count),
+                fd!=null&&React.createElement(DeltaBadge,{val:fd,suffix:"",invert:f.label!=="Max Plan Confirmed"&&f.label!=="Max Plan Approaching"})),
+              React.createElement("div",{style:{fontSize:12,fontWeight:600}},f.label),
+              React.createElement("div",{style:{fontSize:11,color:C.textDim}},f.desc));
+          }))));
+  }
 
-    tab==="leaderboard"&&React.createElement("div",{style:{padding:24}},
-      React.createElement("div",{style:{background:C.card,border:`1px solid ${C.border}`,borderRadius:10,overflow:"hidden"}},
-        React.createElement("div",{style:{display:"grid",gridTemplateColumns:"28px 1fr 100px 80px 80px 80px 80px 120px",gap:8,padding:"10px 16px",background:C.bg,borderBottom:`1px solid ${C.border}`,fontSize:11,fontWeight:700,textTransform:"uppercase",color:C.textDim}},"# User Spend Reqs $/Req Opus% ModelMix Flags".split(" ").map((h,i)=>React.createElement("span",{key:i,style:{textAlign:i>1?"right":"left"}},h))),
-        (DATA.leaderboard||[]).map((u,i)=>React.createElement("div",{key:u.email},
-          React.createElement("div",{onClick:()=>setExp(exp===u.email?null:u.email),style:{display:"grid",gridTemplateColumns:"28px 1fr 100px 80px 80px 80px 80px 120px",gap:8,padding:"12px 16px",borderBottom:`1px solid ${C.border}`,cursor:"pointer",background:exp===u.email?C.accentLight:i%2===0?C.card:"#f9fafb",alignItems:"center"}},
-            React.createElement("span",{style:{fontSize:12,color:C.textDim,fontWeight:600}},i+1),
-            React.createElement("div",null,React.createElement("div",{style:{fontSize:13,fontWeight:600}},u.name),React.createElement("div",{style:{fontSize:11,color:C.textDim}},u.email)),
-            React.createElement("span",{style:{textAlign:"right",fontSize:13,fontWeight:700}},fmt(u.spend)),
-            React.createElement("span",{style:{textAlign:"right",fontSize:12,color:C.textMuted}},u.requests.toLocaleString()),
-            React.createElement("span",{style:{textAlign:"right",fontSize:12,color:C.textMuted}},"$"+u.cpr.toFixed(3)),
-            React.createElement("span",{style:{textAlign:"right",fontSize:12,color:u.opusPct>30?C.red:C.textMuted}},u.opusPct+"%"),
-            React.createElement(MBar,{modelMix:u.modelMix}),
-            React.createElement("div",{style:{display:"flex",gap:3,flexWrap:"wrap"}},(u.flags||[]).map(f=>React.createElement(FlagPill,{key:f,flag:f})))),
-          exp===u.email&&React.createElement(ExpandRow,{user:u}))))),
+  function TrendsTab(){
+    if(months.length<2){
+      return React.createElement("div",{style:{padding:40,textAlign:"center",color:C.textMuted}},"Need 2+ months of history for trends.");
+    }
+    var sections=[
+      {title:"Spend & Volume",rows:[
+        {label:"Total Spend",vals:months.map(function(m){return m.totalSpend;}),color:C.accent,av:mom.spend.april,mv:mom.spend.may,d:mom.spend.deltaPct},
+        {label:"Active Users",vals:months.map(function(m){return m.activeUsers;}),color:C.blue,av:mom.users.april,mv:mom.users.may,d:mom.users.deltaPct,f:function(v){return v.toLocaleString();}},
+        {label:"Avg / User",vals:months.map(function(m){return m.avgSpend;}),color:C.accentMuted,av:mom.avgSpend.april,mv:mom.avgSpend.may,d:mom.avgSpend.deltaPct}
+      ]},
+      {title:"Model Mix",rows:[
+        {label:"Opus Spend",vals:months.map(function(m){return m.opusSpend;}),color:C.red,av:mom.opusSpend.april,mv:mom.opusSpend.may,d:mom.opusSpend.deltaPct,inv:true},
+        {label:"Sonnet Spend",vals:months.map(function(m){return m.sonnetSpend;}),color:C.accent,av:months[0].sonnetSpend,mv:months[1].sonnetSpend,d:Math.round((months[1].sonnetSpend/months[0].sonnetSpend-1)*1000)/10},
+        {label:"Opus %",vals:months.map(function(m){return m.opusPct;}),color:C.red,av:mom.opusPct.april,mv:mom.opusPct.may,d:mom.opusPct.delta,inv:true,f:function(v){return v+"%";}},
+        {label:"Sonnet %",vals:months.map(function(m){return m.sonnetPct;}),color:C.accent,av:mom.sonnetPct.april,mv:mom.sonnetPct.may,d:mom.sonnetPct.delta,f:function(v){return v+"%";}}
+      ]},
+      {title:"Flag Counts",rows:[
+        {label:"Cowork\u2192Opus",vals:months.map(function(m){return(m.flagCounts&&m.flagCounts.coworkOpus)||0;}),color:"#7e22ce",av:mom.flags.coworkOpus.april,mv:mom.flags.coworkOpus.may,d:mom.flags.coworkOpus.may-mom.flags.coworkOpus.april,inv:true,f:function(v){return String(v);}},
+        {label:"Opus-Heavy Chat",vals:months.map(function(m){return(m.flagCounts&&m.flagCounts.opusHeavy)||0;}),color:C.amber,av:mom.flags.opusHeavy.april,mv:mom.flags.opusHeavy.may,d:mom.flags.opusHeavy.may-mom.flags.opusHeavy.april,inv:true,f:function(v){return String(v);}},
+        {label:"Legacy Models",vals:months.map(function(m){return(m.flagCounts&&m.flagCounts.legacy)||0;}),color:C.green,av:mom.flags.legacy.april,mv:mom.flags.legacy.may,d:mom.flags.legacy.may-mom.flags.legacy.april,inv:true,f:function(v){return String(v);}},
+        {label:"Max Plan Confirmed",vals:months.map(function(m){return(m.flagCounts&&m.flagCounts.maxPlanConfirmed)||0;}),color:C.red,av:mom.flags.maxPlanConfirmed.april,mv:mom.flags.maxPlanConfirmed.may,d:mom.flags.maxPlanConfirmed.may-mom.flags.maxPlanConfirmed.april,f:function(v){return String(v);}}
+      ]},
+      {title:"Product Spend",rows:["Chat","Cowork","Claude Code","Claude in Chrome","Claude Design"].map(function(p){
+        var colors={Chat:C.accent,Cowork:C.blue,"Claude Code":C.green,"Claude in Chrome":C.amber,"Claude Design":C.orange};
+        return{label:p,vals:months.map(function(m){return(m.productSpend&&m.productSpend[p])||0;}),color:colors[p]||C.textDim,av:(mom.products[p]&&mom.products[p].april)||0,mv:(mom.products[p]&&mom.products[p].may)||0,d:mom.products[p]&&mom.products[p].deltaPct};
+      })}
+    ];
+    var momGrid=[
+      {label:"Total Spend",av:mom.spend.april,mv:mom.spend.may,d:mom.spend.deltaPct,f:fmt},
+      {label:"Active Users",av:mom.users.april,mv:mom.users.may,d:mom.users.deltaPct,f:function(v){return v.toLocaleString();}},
+      {label:"Avg Spend/User",av:mom.avgSpend.april,mv:mom.avgSpend.may,d:mom.avgSpend.deltaPct,f:fmt},
+      {label:"Opus Spend",av:mom.opusSpend.april,mv:mom.opusSpend.may,d:mom.opusSpend.deltaPct,f:fmt,inv:true},
+      {label:"Opus Mix %",av:mom.opusPct.april+"%",mv:mom.opusPct.may+"%",d:mom.opusPct.delta,sfx:"pp",inv:true,f:function(v){return v;}},
+      {label:"Sonnet Mix %",av:mom.sonnetPct.april+"%",mv:mom.sonnetPct.may+"%",d:mom.sonnetPct.delta,sfx:"pp",f:function(v){return v;}}
+    ];
+    return React.createElement("div",{style:{padding:24}},
+      React.createElement("div",{style:{background:C.card,border:"1px solid "+C.border,borderRadius:10,padding:20,marginBottom:16}},
+        React.createElement("div",{style:{fontSize:13,fontWeight:700,marginBottom:4}},"Month-over-Month Summary"),
+        React.createElement("div",{style:{fontSize:12,color:C.textMuted,marginBottom:20}},"April 2026 \u2192 May 2026"),
+        React.createElement("div",{style:{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:16}},
+          momGrid.map(function(x){
+            return React.createElement("div",{key:x.label,style:{background:C.bg,borderRadius:8,padding:"12px 16px"}},
+              React.createElement("div",{style:{fontSize:11,color:C.textDim,marginBottom:6}},x.label),
+              React.createElement("div",{style:{display:"flex",justifyContent:"space-between",alignItems:"baseline",marginBottom:4}},
+                React.createElement("div",{style:{fontSize:11,color:C.textMuted}},"Apr ",React.createElement("span",{style:{color:C.text,fontWeight:600}},x.f(x.av))),
+                React.createElement("div",{style:{fontSize:13,fontWeight:800}},"May ",x.f(x.mv))),
+              React.createElement(DeltaBadge,{val:x.d,suffix:x.sfx||"%",invert:x.inv||false}));
+          }))),
+      sections.map(function(sec){
+        return React.createElement("div",{key:sec.title,style:{background:C.card,border:"1px solid "+C.border,borderRadius:10,padding:20,marginBottom:16}},
+          React.createElement("div",{style:{fontSize:13,fontWeight:700,marginBottom:16}},sec.title),
+          React.createElement("div",{style:{display:"grid",gridTemplateColumns:"160px 1fr 90px 90px 100px",gap:12,padding:"0 0 8px",borderBottom:"2px solid "+C.border,marginBottom:4}},
+            ["Metric","Trend","April","May","MoM"].map(function(h){return React.createElement("span",{key:h,style:{fontSize:11,fontWeight:700,textTransform:"uppercase",color:C.textDim}},h);})),
+          sec.rows.map(function(r){
+            var fmtFn=r.f||fmt;
+            return React.createElement("div",{key:r.label,style:{display:"grid",gridTemplateColumns:"160px 1fr 90px 90px 100px",gap:12,alignItems:"center",padding:"10px 0",borderBottom:"1px solid "+C.border}},
+              React.createElement("span",{style:{fontSize:13,color:C.textMuted}},r.label),
+              React.createElement(SparkLine,{values:r.vals,color:r.color,width:120,height:28}),
+              React.createElement("span",{style:{textAlign:"right",fontSize:12,color:C.textDim}},fmtFn(r.av)),
+              React.createElement("span",{style:{textAlign:"right",fontSize:13,fontWeight:700}},fmtFn(r.mv)),
+              React.createElement("div",null,r.d!=null&&React.createElement(DeltaBadge,{val:r.d,suffix:"%",invert:r.inv||false})));
+          }));
+      }));
+  }
 
-    tab==="allusers"&&React.createElement("div",{style:{padding:24}},
+  function LeaderboardTab(){
+    return React.createElement("div",{style:{padding:24}},
+      React.createElement("div",{style:{background:C.card,border:"1px solid "+C.border,borderRadius:10,overflow:"hidden"}},
+        React.createElement("div",{style:{display:"grid",gridTemplateColumns:"28px 1fr 100px 80px 80px 80px 80px 120px",gap:8,padding:"10px 16px",background:C.bg,borderBottom:"1px solid "+C.border,fontSize:11,fontWeight:700,textTransform:"uppercase",color:C.textDim}},
+          ["#","User","Spend","Reqs","$/Req","Opus%","Model","Flags"].map(function(h,i){return React.createElement("span",{key:i,style:{textAlign:i>1&&i<6?"right":"left"}},h);})),
+        (DATA.leaderboard||[]).map(function(u,i){
+          return React.createElement("div",{key:u.email},
+            React.createElement("div",{onClick:function(){setExp(exp===u.email?null:u.email);},style:{display:"grid",gridTemplateColumns:"28px 1fr 100px 80px 80px 80px 80px 120px",gap:8,padding:"12px 16px",borderBottom:"1px solid "+C.border,cursor:"pointer",background:exp===u.email?C.accentLight:i%2===0?C.card:"#f9fafb",alignItems:"center"}},
+              React.createElement("span",{style:{fontSize:12,color:C.textDim,fontWeight:600}},i+1),
+              React.createElement("div",null,React.createElement("div",{style:{fontSize:13,fontWeight:600}},u.name),React.createElement("div",{style:{fontSize:11,color:C.textDim}},u.email)),
+              React.createElement("span",{style:{textAlign:"right",fontSize:13,fontWeight:700}},fmt(u.spend)),
+              React.createElement("span",{style:{textAlign:"right",fontSize:12,color:C.textMuted}},u.requests.toLocaleString()),
+              React.createElement("span",{style:{textAlign:"right",fontSize:12,color:C.textMuted}},"$"+u.cpr.toFixed(3)),
+              React.createElement("span",{style:{textAlign:"right",fontSize:12,color:u.opusPct>30?C.red:C.textMuted}},u.opusPct+"%"),
+              React.createElement(MBar,{modelMix:u.modelMix}),
+              React.createElement("div",{style:{display:"flex",gap:3,flexWrap:"wrap"}},(u.flags||[]).map(function(f){return React.createElement(FlagPill,{key:f,flag:f}); }))),
+            exp===u.email&&React.createElement(ExpandRow,{user:u}));
+        })));
+  }
+
+  function AllUsersTab(){
+    return React.createElement("div",{style:{padding:24}},
       React.createElement("div",{style:{display:"flex",gap:10,marginBottom:16,alignItems:"center"}},
-        React.createElement("input",{value:search,onChange:e=>setSearch(e.target.value),placeholder:"Search users...",style:{padding:"8px 12px",borderRadius:6,border:`1px solid ${C.border}`,fontSize:13,width:240,outline:"none",background:C.card}}),
-        React.createElement("select",{value:sort,onChange:e=>setSort(e.target.value),style:{padding:"8px 10px",borderRadius:6,border:`1px solid ${C.border}`,fontSize:13,background:C.card}},React.createElement("option",{value:"spend"},"Sort: Spend"),React.createElement("option",{value:"requests"},"Sort: Requests"),React.createElement("option",{value:"cpr"},"Sort: $/Req")),
+        React.createElement("input",{value:search,onChange:function(e){setSearch(e.target.value);},placeholder:"Search users...",style:{padding:"8px 12px",borderRadius:6,border:"1px solid "+C.border,fontSize:13,width:240,outline:"none",background:C.card}}),
+        React.createElement("select",{value:sort,onChange:function(e){setSort(e.target.value);},style:{padding:"8px 10px",borderRadius:6,border:"1px solid "+C.border,fontSize:13,background:C.card}},
+          React.createElement("option",{value:"spend"},"Sort: Spend"),
+          React.createElement("option",{value:"requests"},"Sort: Requests"),
+          React.createElement("option",{value:"cpr"},"Sort: $/Req")),
         React.createElement("span",{style:{fontSize:12,color:C.textDim}},filtered.length+" users")),
-      React.createElement("div",{style:{background:C.card,border:`1px solid ${C.border}`,borderRadius:10,overflow:"hidden"}},
-        React.createElement("div",{style:{display:"grid",gridTemplateColumns:"1fr 100px 70px 70px 80px 80px 110px",gap:8,padding:"10px 16px",background:C.bg,borderBottom:`1px solid ${C.border}`,fontSize:11,fontWeight:700,textTransform:"uppercase",color:C.textDim}},"User Spend Reqs $/Req ModelMix TopProduct Flags".split(" ").map((h,i)=>React.createElement("span",{key:i,style:{textAlign:i>0&&i<4?"right":"left"}},h))),
-        filtered.map((u,i)=>React.createElement("div",{key:u.email},
-          React.createElement("div",{onClick:()=>setAuExp(auExp===u.email?null:u.email),style:{display:"grid",gridTemplateColumns:"1fr 100px 70px 70px 80px 80px 110px",gap:8,padding:"10px 16px",borderBottom:`1px solid ${C.border}`,cursor:"pointer",background:auExp===u.email?C.accentLight:i%2===0?C.card:"#f9fafb",alignItems:"center"}},
-            React.createElement("div",null,React.createElement("div",{style:{fontSize:12,fontWeight:600}},u.name),React.createElement("div",{style:{fontSize:11,color:C.textDim}},u.email)),
-            React.createElement("span",{style:{textAlign:"right",fontSize:12,fontWeight:700}},fmt(u.spend)),
-            React.createElement("span",{style:{textAlign:"right",fontSize:11,color:C.textMuted}},u.requests.toLocaleString()),
-            React.createElement("span",{style:{textAlign:"right",fontSize:11,color:C.textMuted}},"$"+u.cpr.toFixed(3)),
-            React.createElement(MBar,{modelMix:u.modelMix}),
-            React.createElement("span",{style:{fontSize:11,color:C.textMuted,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}},u.topProduct),
-            React.createElement("div",{style:{display:"flex",gap:2,flexWrap:"wrap"}},(u.flags||[]).map(f=>React.createElement(FlagPill,{key:f,flag:f})))),
-          auExp===u.email&&React.createElement(ExpandRow,{user:u}))))),
+      React.createElement("div",{style:{background:C.card,border:"1px solid "+C.border,borderRadius:10,overflow:"hidden"}},
+        React.createElement("div",{style:{display:"grid",gridTemplateColumns:"1fr 100px 70px 70px 80px 80px 110px",gap:8,padding:"10px 16px",background:C.bg,borderBottom:"1px solid "+C.border,fontSize:11,fontWeight:700,textTransform:"uppercase",color:C.textDim}},
+          ["User","Spend","Reqs","$/Req","Model","Top Product","Flags"].map(function(h,i){return React.createElement("span",{key:i,style:{textAlign:i>0&&i<4?"right":"left"}},h);})),
+        filtered.map(function(u,i){
+          return React.createElement("div",{key:u.email},
+            React.createElement("div",{onClick:function(){setAuExp(auExp===u.email?null:u.email);},style:{display:"grid",gridTemplateColumns:"1fr 100px 70px 70px 80px 80px 110px",gap:8,padding:"10px 16px",borderBottom:"1px solid "+C.border,cursor:"pointer",background:auExp===u.email?C.accentLight:i%2===0?C.card:"#f9fafb",alignItems:"center"}},
+              React.createElement("div",null,React.createElement("div",{style:{fontSize:12,fontWeight:600}},u.name),React.createElement("div",{style:{fontSize:11,color:C.textDim}},u.email)),
+              React.createElement("span",{style:{textAlign:"right",fontSize:12,fontWeight:700}},fmt(u.spend)),
+              React.createElement("span",{style:{textAlign:"right",fontSize:11,color:C.textMuted}},u.requests.toLocaleString()),
+              React.createElement("span",{style:{textAlign:"right",fontSize:11,color:C.textMuted}},"$"+u.cpr.toFixed(3)),
+              React.createElement(MBar,{modelMix:u.modelMix}),
+              React.createElement("span",{style:{fontSize:11,color:C.textMuted,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}},u.topProduct),
+              React.createElement("div",{style:{display:"flex",gap:2,flexWrap:"wrap"}},(u.flags||[]).map(function(f){return React.createElement(FlagPill,{key:f,flag:f}); }))),
+            auExp===u.email&&React.createElement(ExpandRow,{user:u}));
+        })));
+  }
 
-    tab==="trends"&&React.createElement("div",{style:{padding:24}},
-      months.length<2?React.createElement("div",{style:{padding:40,textAlign:"center",color:C.textMuted}},"Need 2+ months of history for trends."):React.createElement("div",null,
-        React.createElement("div",{style:{background:C.card,border:`1px solid ${C.border}`,borderRadius:10,padding:20,marginBottom:16}},
-          React.createElement("div",{style:{fontSize:13,fontWeight:700,marginBottom:4}},"Month-over-Month Summary"),
-          React.createElement("div",{style:{fontSize:12,color:C.textMuted,marginBottom:20}},"April 2026 → May 2026"),
-          React.createElement("div",{style:{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:16}},
-            ...[{label:"Total Spend",av:mom.spend.april,mv:mom.spend.may,d:mom.spend.deltaPct,f:fmt},{label:"Active Users",av:mom.users.april,mv:mom.users.may,d:mom.users.deltaPct,f:v=>v.toLocaleString()},{label:"Avg Spend/User",av:mom.avgSpend.april,mv:mom.avgSpend.may,d:mom.avgSpend.deltaPct,f:fmt},{label:"Opus Spend",av:mom.opusSpend.april,mv:mom.opusSpend.may,d:mom.opusSpend.deltaPct,f:fmt,inv:true},{label:"Opus Mix %",av:mom.opusPct.april+"%",mv:mom.opusPct.may+"%",d:mom.opusPct.delta,sfx:"pp",inv:true,f:v=>v},{label:"Sonnet Mix %",av:mom.sonnetPct.april+"%",mv:mom.sonnetPct.may+"%",d:mom.sonnetPct.delta,sfx:"pp",f:v=>v}].map(({label,av,mv,d,f,sfx="%",inv=false})=>React.createElement("div",{key:label,style:{background:C.bg,borderRadius:8,padding:"12px 16px"}},React.createElement("div",{style:{fontSize:11,color:C.textDim,marginBottom:6}},label),React.createElement("div",{style:{display:"flex",justifyContent:"space-between",alignItems:"baseline",marginBottom:4}},React.createElement("div",{style:{fontSize:11,color:C.textMuted}},"Apr ",React.createElement("span",{style:{color:C.text,fontWeight:600}},f(av))),React.createElement("div",{style:{fontSize:13,fontWeight:800}},"May ",f(mv))),React.createElement(DeltaBadge,{val:d,suffix:sfx,invert:inv}))))),
-        ...[
-          {title:"Spend & Volume",rows:[{label:"Total Spend",vals:months.map(m=>m.totalSpend),color:C.accent,av:mom.spend.april,mv:mom.spend.may,d:mom.spend.deltaPct},{label:"Active Users",vals:months.map(m=>m.activeUsers),color:C.blue,av:mom.users.april,mv:mom.users.may,d:mom.users.deltaPct,f:v=>v.toLocaleString()},{label:"Avg / User",vals:months.map(m=>m.avgSpend),color:C.accentMuted,av:mom.avgSpend.april,mv:mom.avgSpend.may,d:mom.avgSpend.deltaPct}]},
-          {title:"Model Mix",rows:[{label:"Opus Spend",vals:months.map(m=>m.opusSpend),color:C.red,av:mom.opusSpend.april,mv:mom.opusSpend.may,d:mom.opusSpend.deltaPct,inv:true},{label:"Sonnet Spend",vals:months.map(m=>m.sonnetSpend),color:C.accent,av:months[0].sonnetSpend,mv:months[1].sonnetSpend,d:Math.round((months[1].sonnetSpend/months[0].sonnetSpend-1)*1000)/10},{label:"Opus %",vals:months.map(m=>m.opusPct),color:C.red,av:mom.opusPct.april,mv:mom.opusPct.may,d:mom.opusPct.delta,inv:true,f:v=>v+"%"},{label:"Sonnet %",vals:months.map(m=>m.sonnetPct),color:C.accent,av:mom.sonnetPct.april,mv:mom.sonnetPct.may,d:mom.sonnetPct.delta,f:v=>v+"%"}]},
-          {title:"Flag Counts",rows:[{label:"Cowork→Opus",vals:months.map(m=>m.flagCounts?.coworkOpus||0),color:"#7e22ce",av:mom.flags.coworkOpus.april,mv:mom.flags.coworkOpus.may,d:mom.flags.coworkOpus.may-mom.flags.coworkOpus.april,inv:true,f:v=>v!==null?String(v):"—"},{label:"Opus-Heavy Chat",vals:months.map(m=>m.flagCounts?.opusHeavy||0),color:C.amber,av:mom.flags.opusHeavy.april,mv:mom.flags.opusHeavy.may,d:mom.flags.opusHeavy.may-mom.flags.opusHeavy.april,inv:true,f:v=>String(v)},{label:"Legacy Models",vals:months.map(m=>m.flagCounts?.legacy||0),color:C.green,av:mom.flags.legacy.april,mv:mom.flags.legacy.may,d:mom.flags.legacy.may-mom.flags.legacy.april,inv:true,f:v=>String(v)},{label:"Max Plan Confirmed",vals:months.map(m=>m.flagCounts?.maxPlanConfirmed||0),color:C.red,av:mom.flags.maxPlanConfirmed.april,mv:mom.flags.maxPlanConfirmed.may,d:mom.flags.maxPlanConfirmed.may-mom.flags.maxPlanConfirmed.april,f:v=>String(v)}]},
-          {title:"Product Spend",rows:["Chat","Cowork","Claude Code","Claude in Chrome","Claude Design"].map((p,i)=>{const cols={Chat:C.accent,Cowork:C.blue,"Claude Code":C.green,"Claude in Chrome":C.amber,"Claude Design":C.orange};return{label:p,vals:months.map(m=>m.productSpend?.[p]||0),color:cols[p]||C.textDim,av:mom.products[p]?.april||0,mv:mom.products[p]?.may||0,d:mom.products[p]?.deltaPct};})}
-        ].map(({title,rows})=>React.createElement("div",{key:title,style:{background:C.card,border:`1px solid ${C.border}`,borderRadius:10,padding:20,marginBottom:16}},
-          React.createElement("div",{style:{fontSize:13,fontWeight:700,marginBottom:16}},title),
-          React.createElement("div",{style:{display:"grid",gridTemplateColumns:"160px 1fr 90px 90px 100px",gap:12,padding:"0 0 8px",borderBottom:`2px solid ${C.border}`,marginBottom:4}},["Metric","Trend","April","May","MoM"].map(h=>React.createElement("span",{key:h,style:{fontSize:11,fontWeight:700,textTransform:"uppercase",color:C.textDim}},h))),
-          rows.map(r=>React.createElement("div",{key:r.label,style:{display:"grid",gridTemplateColumns:"160px 1fr 90px 90px 100px",gap:12,alignItems:"center",padding:"10px 0",borderBottom:`1px solid ${C.border}`}},
-            React.createElement("span",{style:{fontSize:13,color:C.textMuted}},r.label),
-            React.createElement(SparkLine,{values:r.vals,color:r.color,width:120,height:28}),
-            React.createElement("span",{style:{textAlign:"right",fontSize:12,color:C.textDim}},(r.f||fmt)(r.av)),
-            React.createElement("span",{style:{textAlign:"right",fontSize:13,fontWeight:700}},(r.f||fmt)(r.mv)),
-            React.createElement("div",null,r.d!==null&&r.d!==undefined&&React.createElement(DeltaBadge,{val:r.d,suffix:"%",invert:r.inv}))))))),
-
-    tab==="flags"&&React.createElement("div",{style:{padding:24}},
+  function FlagsTab(){
+    var flagSections=[
+      {id:"max",lb:"Max Plan ("+((DATA.maxPlan||[]).length+(DATA.maxApproaching||[]).length)+")"},
+      {id:"cowork",lb:"Cowork\u2192Opus ("+((DATA.coworkOpus||[]).length)+")"},
+      {id:"opus",lb:"Opus Heavy ("+((DATA.opusHeavy||[]).length)+")"},
+      {id:"legacy",lb:"Legacy ("+((DATA.legacyModels||[]).length)+")"},
+      {id:"loweng",lb:"Low Engagement ("+((DATA.lowEngagement||[]).length)+")"}
+    ];
+    return React.createElement("div",{style:{padding:24}},
       React.createElement("div",{style:{display:"flex",gap:6,marginBottom:20,flexWrap:"wrap"}},
-        [{id:"max",lb:"Max Plan ("+((DATA.maxPlan||[]).length+(DATA.maxApproaching||[]).length)+")"},{id:"cowork",lb:"Cowork→Opus ("+((DATA.coworkOpus||[]).length)+")"},{id:"opus",lb:"Opus Heavy ("+((DATA.opusHeavy||[]).length)+")"},{id:"legacy",lb:"Legacy ("+((DATA.legacyModels||[]).length)+")"},{id:"loweng",lb:"Low Engagement ("+((DATA.lowEngagement||[]).length)+")"}].map(sec=>React.createElement("button",{key:sec.id,onClick:()=>setFlagSec(sec.id),style:{padding:"6px 14px",borderRadius:99,border:`1px solid ${flagSec===sec.id?C.accent:C.border}`,background:flagSec===sec.id?C.accentLight:C.card,color:flagSec===sec.id?C.accent:C.textMuted,fontSize:12,fontWeight:600,cursor:"pointer"}},sec.lb))),
+        flagSections.map(function(sec){
+          return React.createElement("button",{key:sec.id,onClick:function(){setFlagSec(sec.id);},style:{padding:"6px 14px",borderRadius:99,border:"1px solid "+(flagSec===sec.id?C.accent:C.border),background:flagSec===sec.id?C.accentLight:C.card,color:flagSec===sec.id?C.accent:C.textMuted,fontSize:12,fontWeight:600,cursor:"pointer"}},sec.lb);
+        })),
       flagSec==="max"&&React.createElement("div",null,
-        (DATA.maxPlan||[]).length>0&&React.createElement("div",{style:{background:"#fef2f2",border:"1px solid #fca5a5",borderRadius:10,padding:16,marginBottom:16}},React.createElement("div",{style:{fontSize:13,fontWeight:700,color:"#dc2626",marginBottom:10}},"Confirmed Max Plan (≥$800/mo)"),(DATA.maxPlan||[]).map(u=>React.createElement("div",{key:u.email,style:{display:"flex",justifyContent:"space-between",padding:"6px 0",borderBottom:"1px solid #fca5a5",fontSize:13}},React.createElement("div",null,React.createElement("span",{style:{fontWeight:600}},u.name)," ",React.createElement("span",{style:{color:C.textDim,fontSize:11}},u.email)),React.createElement("span",{style:{fontWeight:700,color:"#dc2626"}},fmt(u.spend))))),
-        React.createElement("div",{style:{background:"#fff7ed",border:"1px solid #fdba74",borderRadius:10,padding:16}},React.createElement("div",{style:{fontSize:13,fontWeight:700,color:"#c2410c",marginBottom:10}},"Approaching Max Plan ($400–$799) — "+(DATA.maxApproaching||[]).length+" users"),(DATA.maxApproaching||[]).map(u=>React.createElement("div",{key:u.email,style:{display:"flex",justifyContent:"space-between",padding:"6px 0",borderBottom:"1px solid #fdba74",fontSize:13}},React.createElement("div",null,React.createElement("span",{style:{fontWeight:600}},u.name)," ",React.createElement("span",{style:{color:C.textDim,fontSize:11}},u.email)),React.createElement("span",{style:{fontWeight:700,color:"#c2410c"}},fmt(u.spend)))))),
-      flagSec==="cowork"&&React.createElement("div",{style:{background:C.card,border:`1px solid ${C.border}`,borderRadius:10,overflow:"hidden"}},React.createElement("div",{style:{padding:"10px 16px",background:C.bg,borderBottom:`1px solid ${C.border}`,fontSize:11,fontWeight:700,textTransform:"uppercase",color:C.textDim}},(DATA.coworkOpus||[]).length+" users routing Cowork to Opus"),(DATA.coworkOpus||[]).map((u,i)=>React.createElement("div",{key:u.email,style:{display:"grid",gridTemplateColumns:"1fr 100px 80px 80px 100px",gap:8,padding:"10px 16px",borderBottom:`1px solid ${C.border}`,background:i%2===0?C.card:"#f9fafb",alignItems:"center"}},React.createElement("div",null,React.createElement("div",{style:{fontSize:13,fontWeight:600}},u.name),React.createElement("div",{style:{fontSize:11,color:C.textDim}},u.email)),React.createElement("span",{style:{textAlign:"right",fontWeight:700,fontSize:13}},fmt(u.spend)),React.createElement("span",{style:{textAlign:"right",fontSize:12,color:C.textMuted}},u.requests.toLocaleString()+" reqs"),React.createElement("span",{style:{textAlign:"right",fontSize:12,color:C.textMuted}},fmt(u.totalSpend)+" total"),React.createElement("span",{style:{textAlign:"right",fontSize:11,color:"#7e22ce",fontWeight:600}},fmtM(u.model))))),
-      flagSec==="opus"&&React.createElement("div",{style:{background:C.card,border:`1px solid ${C.border}`,borderRadius:10,overflow:"hidden"}},React.createElement("div",{style:{padding:"10px 16px",background:C.bg,borderBottom:`1px solid ${C.border}`,fontSize:11,fontWeight:700,textTransform:"uppercase",color:C.textDim}},(DATA.opusHeavy||[]).length+" users with ≥30% Chat spend on Opus"),(DATA.opusHeavy||[]).map((u,i)=>React.createElement("div",{key:u.email,style:{display:"grid",gridTemplateColumns:"1fr 80px 100px 100px 100px",gap:8,padding:"10px 16px",borderBottom:`1px solid ${C.border}`,background:i%2===0?C.card:"#f9fafb",alignItems:"center"}},React.createElement("div",null,React.createElement("div",{style:{fontSize:13,fontWeight:600}},u.name),React.createElement("div",{style:{fontSize:11,color:C.textDim}},u.email)),React.createElement("span",{style:{textAlign:"right",fontSize:13,fontWeight:700,color:C.red}},u.opusPct+"%"),React.createElement("span",{style:{textAlign:"right",fontSize:12,color:C.red}},"Opus "+fmt(u.opusSpend)),React.createElement("span",{style:{textAlign:"right",fontSize:12,color:C.textMuted}},"Chat "+fmt(u.chatSpend)),React.createElement("span",{style:{textAlign:"right",fontSize:12,color:C.textDim}},"Total "+fmt(u.totalSpend))))),
-      flagSec==="legacy"&&React.createElement("div",{style:{background:C.card,border:`1px solid ${C.border}`,borderRadius:10,overflow:"hidden"}},React.createElement("div",{style:{padding:"10px 16px",background:C.bg,borderBottom:`1px solid ${C.border}`,fontSize:11,fontWeight:700,textTransform:"uppercase",color:C.textDim}},(DATA.legacyModels||[]).length+" users on deprecated model versions"),(DATA.legacyModels||[]).map((u,i)=>React.createElement("div",{key:u.email,style:{display:"grid",gridTemplateColumns:"1fr 100px 100px 1fr",gap:8,padding:"10px 16px",borderBottom:`1px solid ${C.border}`,background:i%2===0?C.card:"#f9fafb",alignItems:"center"}},React.createElement("div",null,React.createElement("div",{style:{fontSize:13,fontWeight:600}},u.name),React.createElement("div",{style:{fontSize:11,color:C.textDim}},u.email)),React.createElement("span",{style:{textAlign:"right",fontSize:12,fontWeight:600}},fmt(u.legacySpend)),React.createElement("span",{style:{textAlign:"right",fontSize:12,color:C.textDim}},"Total "+fmt(u.totalSpend)),React.createElement("div",{style:{display:"flex",gap:4,flexWrap:"wrap"}},(u.models||[]).map(m=>React.createElement("span",{key:m,style:{fontSize:10,background:"#dcfce7",color:"#166534",padding:"2px 6px",borderRadius:99,fontWeight:600}},fmtM(m))))))),
-      flagSec==="loweng"&&React.createElement("div",null,React.createElement("div",{style:{background:"#f0f9ff",border:"1px solid #7dd3fc",borderRadius:10,padding:"10px 16px",marginBottom:12,fontSize:12,color:"#0369a1"}},"Low engagement tracks seat utilization, not cost. "+(DATA.lowEngagement||[]).length+" users with <$10 spend this month."),React.createElement("div",{style:{background:C.card,border:`1px solid ${C.border}`,borderRadius:10,overflow:"hidden"}},(DATA.lowEngagement||[]).map((u,i)=>React.createElement("div",{key:u.email,style:{display:"grid",gridTemplateColumns:"1fr 100px 80px",gap:8,padding:"10px 16px",borderBottom:`1px solid ${C.border}`,background:i%2===0?C.card:"#f9fafb",alignItems:"center"}},React.createElement("div",null,React.createElement("div",{style:{fontSize:13,fontWeight:600}},u.name),React.createElement("div",{style:{fontSize:11,color:C.textDim}},u.email)),React.createElement("span",{style:{textAlign:"right",fontSize:12}},fmt(u.spend)),React.createElement("span",{style:{textAlign:"right",fontSize:12,color:C.textDim}},u.requests+" reqs")))))),
+        (DATA.maxPlan||[]).length>0&&React.createElement("div",{style:{background:"#fef2f2",border:"1px solid #fca5a5",borderRadius:10,padding:16,marginBottom:16}},
+          React.createElement("div",{style:{fontSize:13,fontWeight:700,color:"#dc2626",marginBottom:10}},"Confirmed Max Plan (\u2265$800/mo)"),
+          (DATA.maxPlan||[]).map(function(u){
+            return React.createElement("div",{key:u.email,style:{display:"flex",justifyContent:"space-between",padding:"6px 0",borderBottom:"1px solid #fca5a5",fontSize:13}},
+              React.createElement("div",null,React.createElement("span",{style:{fontWeight:600}},u.name)," ",React.createElement("span",{style:{color:C.textDim,fontSize:11}},u.email)),
+              React.createElement("span",{style:{fontWeight:700,color:"#dc2626"}},fmt(u.spend)));
+          })),
+        React.createElement("div",{style:{background:"#fff7ed",border:"1px solid #fdba74",borderRadius:10,padding:16}},
+          React.createElement("div",{style:{fontSize:13,fontWeight:700,color:"#c2410c",marginBottom:10}},"Approaching Max Plan ($400\u2013$799) \u2014 "+(DATA.maxApproaching||[]).length+" users"),
+          (DATA.maxApproaching||[]).map(function(u){
+            return React.createElement("div",{key:u.email,style:{display:"flex",justifyContent:"space-between",padding:"6px 0",borderBottom:"1px solid #fdba74",fontSize:13}},
+              React.createElement("div",null,React.createElement("span",{style:{fontWeight:600}},u.name)," ",React.createElement("span",{style:{color:C.textDim,fontSize:11}},u.email)),
+              React.createElement("span",{style:{fontWeight:700,color:"#c2410c"}},fmt(u.spend)));
+          }))),
+      flagSec==="cowork"&&React.createElement("div",{style:{background:C.card,border:"1px solid "+C.border,borderRadius:10,overflow:"hidden"}},
+        React.createElement("div",{style:{padding:"10px 16px",background:C.bg,borderBottom:"1px solid "+C.border,fontSize:11,fontWeight:700,textTransform:"uppercase",color:C.textDim}},(DATA.coworkOpus||[]).length+" users routing Cowork to Opus"),
+        (DATA.coworkOpus||[]).map(function(u,i){
+          return React.createElement("div",{key:u.email,style:{display:"grid",gridTemplateColumns:"1fr 100px 80px 80px 100px",gap:8,padding:"10px 16px",borderBottom:"1px solid "+C.border,background:i%2===0?C.card:"#f9fafb",alignItems:"center"}},
+            React.createElement("div",null,React.createElement("div",{style:{fontSize:13,fontWeight:600}},u.name),React.createElement("div",{style:{fontSize:11,color:C.textDim}},u.email)),
+            React.createElement("span",{style:{textAlign:"right",fontWeight:700,fontSize:13}},fmt(u.spend)),
+            React.createElement("span",{style:{textAlign:"right",fontSize:12,color:C.textMuted}},u.requests.toLocaleString()+" reqs"),
+            React.createElement("span",{style:{textAlign:"right",fontSize:12,color:C.textMuted}},fmt(u.totalSpend)+" total"),
+            React.createElement("span",{style:{textAlign:"right",fontSize:11,color:"#7e22ce",fontWeight:600}},fmtM(u.model)));
+        })),
+      flagSec==="opus"&&React.createElement("div",{style:{background:C.card,border:"1px solid "+C.border,borderRadius:10,overflow:"hidden"}},
+        React.createElement("div",{style:{padding:"10px 16px",background:C.bg,borderBottom:"1px solid "+C.border,fontSize:11,fontWeight:700,textTransform:"uppercase",color:C.textDim}},(DATA.opusHeavy||[]).length+" users with \u226530% Chat spend on Opus"),
+        (DATA.opusHeavy||[]).map(function(u,i){
+          return React.createElement("div",{key:u.email,style:{display:"grid",gridTemplateColumns:"1fr 80px 100px 100px 100px",gap:8,padding:"10px 16px",borderBottom:"1px solid "+C.border,background:i%2===0?C.card:"#f9fafb",alignItems:"center"}},
+            React.createElement("div",null,React.createElement("div",{style:{fontSize:13,fontWeight:600}},u.name),React.createElement("div",{style:{fontSize:11,color:C.textDim}},u.email)),
+            React.createElement("span",{style:{textAlign:"right",fontSize:13,fontWeight:700,color:C.red}},u.opusPct+"%"),
+            React.createElement("span",{style:{textAlign:"right",fontSize:12,color:C.red}},"Opus "+fmt(u.opusSpend)),
+            React.createElement("span",{style:{textAlign:"right",fontSize:12,color:C.textMuted}},"Chat "+fmt(u.chatSpend)),
+            React.createElement("span",{style:{textAlign:"right",fontSize:12,color:C.textDim}},"Total "+fmt(u.totalSpend)));
+        })),
+      flagSec==="legacy"&&React.createElement("div",{style:{background:C.card,border:"1px solid "+C.border,borderRadius:10,overflow:"hidden"}},
+        React.createElement("div",{style:{padding:"10px 16px",background:C.bg,borderBottom:"1px solid "+C.border,fontSize:11,fontWeight:700,textTransform:"uppercase",color:C.textDim}},(DATA.legacyModels||[]).length+" users on deprecated model versions"),
+        (DATA.legacyModels||[]).map(function(u,i){
+          return React.createElement("div",{key:u.email,style:{display:"grid",gridTemplateColumns:"1fr 100px 100px 1fr",gap:8,padding:"10px 16px",borderBottom:"1px solid "+C.border,background:i%2===0?C.card:"#f9fafb",alignItems:"center"}},
+            React.createElement("div",null,React.createElement("div",{style:{fontSize:13,fontWeight:600}},u.name),React.createElement("div",{style:{fontSize:11,color:C.textDim}},u.email)),
+            React.createElement("span",{style:{textAlign:"right",fontSize:12,fontWeight:600}},fmt(u.legacySpend)),
+            React.createElement("span",{style:{textAlign:"right",fontSize:12,color:C.textDim}},"Total "+fmt(u.totalSpend)),
+            React.createElement("div",{style:{display:"flex",gap:4,flexWrap:"wrap"}},(u.models||[]).map(function(m){return React.createElement("span",{key:m,style:{fontSize:10,background:"#dcfce7",color:"#166534",padding:"2px 6px",borderRadius:99,fontWeight:600}},fmtM(m));})));
+        })),
+      flagSec==="loweng"&&React.createElement("div",null,
+        React.createElement("div",{style:{background:"#f0f9ff",border:"1px solid #7dd3fc",borderRadius:10,padding:"10px 16px",marginBottom:12,fontSize:12,color:"#0369a1"}},"Low engagement tracks seat utilization, not cost. "+(DATA.lowEngagement||[]).length+" users with <$10 spend this month."),
+        React.createElement("div",{style:{background:C.card,border:"1px solid "+C.border,borderRadius:10,overflow:"hidden"}},
+          (DATA.lowEngagement||[]).map(function(u,i){
+            return React.createElement("div",{key:u.email,style:{display:"grid",gridTemplateColumns:"1fr 100px 80px",gap:8,padding:"10px 16px",borderBottom:"1px solid "+C.border,background:i%2===0?C.card:"#f9fafb",alignItems:"center"}},
+              React.createElement("div",null,React.createElement("div",{style:{fontSize:13,fontWeight:600}},u.name),React.createElement("div",{style:{fontSize:11,color:C.textDim}},u.email)),
+              React.createElement("span",{style:{textAlign:"right",fontSize:12}},fmt(u.spend)),
+              React.createElement("span",{style:{textAlign:"right",fontSize:12,color:C.textDim}},u.requests+" reqs"));
+          }))));
+  }
 
-    tab==="breakdowns"&&React.createElement("div",{style:{padding:24}},
+  function BreakdownsTab(){
+    return React.createElement("div",{style:{padding:24}},
       React.createElement("div",{style:{display:"grid",gridTemplateColumns:"1fr 1fr",gap:16}},
-        React.createElement("div",{style:{background:C.card,border:`1px solid ${C.border}`,borderRadius:10,padding:20}},React.createElement("div",{style:{fontSize:13,fontWeight:700,marginBottom:14}},"Model Versions"),(DATA.models||[]).map(m=>React.createElement("div",{key:m.name,style:{marginBottom:10}},React.createElement("div",{style:{display:"flex",justifyContent:"space-between",marginBottom:3,alignItems:"center"}},React.createElement("div",{style:{display:"flex",alignItems:"center",gap:6}},React.createElement("span",{style:{fontSize:12,color:mColor(m.name),fontWeight:600}},fmtM(m.name)),m.isLegacy&&React.createElement("span",{style:{fontSize:9,background:"#dcfce7",color:"#166534",padding:"1px 5px",borderRadius:99,fontWeight:700,textTransform:"uppercase"}},"legacy")),React.createElement("span",{style:{fontSize:12,fontWeight:700}},fmt(m.spend)+" ",React.createElement("span",{style:{color:C.textDim,fontWeight:400}},"("+m.pct+"%)"))),React.createElement("div",{style:{height:4,background:C.border,borderRadius:2,overflow:"hidden"}},React.createElement("div",{style:{width:m.pct+"%",height:"100%",background:mColor(m.name)}})),React.createElement("div",{style:{fontSize:10,color:C.textDim,marginTop:2}},m.requests.toLocaleString()+" reqs")))),
-        React.createElement("div",{style:{background:C.card,border:`1px solid ${C.border}`,borderRadius:10,padding:20}},React.createElement("div",{style:{fontSize:13,fontWeight:700,marginBottom:4}},"Power Users"),React.createElement("div",{style:{fontSize:11,color:C.textDim,marginBottom:12}},"≥85% Sonnet/Haiku | ≥$100 | ≥100 reqs"),(DATA.powerUsers||[]).slice(0,12).map(u=>React.createElement("div",{key:u.email,style:{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"6px 0",borderBottom:`1px solid ${C.border}`,fontSize:12}},React.createElement("div",null,React.createElement("span",{style:{fontWeight:600}},u.name),React.createElement("span",{style:{fontSize:10,color:C.textDim,marginLeft:6}},u.requests.toLocaleString()+" reqs")),React.createElement("div",{style:{textAlign:"right"}},React.createElement("div",{style:{fontWeight:700}},"$"+u.cpr.toFixed(3)+"/req"),React.createElement("div",{style:{fontSize:10,color:C.green}},u.efficientPct+"% efficient")))))))));
+        React.createElement("div",{style:{background:C.card,border:"1px solid "+C.border,borderRadius:10,padding:20}},
+          React.createElement("div",{style:{fontSize:13,fontWeight:700,marginBottom:14}},"Model Versions"),
+          (DATA.models||[]).map(function(m){
+            return React.createElement("div",{key:m.name,style:{marginBottom:10}},
+              React.createElement("div",{style:{display:"flex",justifyContent:"space-between",marginBottom:3,alignItems:"center"}},
+                React.createElement("div",{style:{display:"flex",alignItems:"center",gap:6}},
+                  React.createElement("span",{style:{fontSize:12,color:mColor(m.name),fontWeight:600}},fmtM(m.name)),
+                  m.isLegacy&&React.createElement("span",{style:{fontSize:9,background:"#dcfce7",color:"#166534",padding:"1px 5px",borderRadius:99,fontWeight:700,textTransform:"uppercase"}},"legacy")),
+                React.createElement("span",{style:{fontSize:12,fontWeight:700}},fmt(m.spend)+" ",React.createElement("span",{style:{color:C.textDim,fontWeight:400}},"("+m.pct+"%)"))),
+              React.createElement("div",{style:{height:4,background:C.border,borderRadius:2,overflow:"hidden"}},
+                React.createElement("div",{style:{width:m.pct+"%",height:"100%",background:mColor(m.name)}})),
+              React.createElement("div",{style:{fontSize:10,color:C.textDim,marginTop:2}},m.requests.toLocaleString()+" reqs"));
+          })),
+        React.createElement("div",{style:{background:C.card,border:"1px solid "+C.border,borderRadius:10,padding:20}},
+          React.createElement("div",{style:{fontSize:13,fontWeight:700,marginBottom:4}},"Power Users"),
+          React.createElement("div",{style:{fontSize:11,color:C.textDim,marginBottom:12}},"\u226585% Sonnet/Haiku | \u2265$100 | \u2265100 reqs"),
+          (DATA.powerUsers||[]).slice(0,12).map(function(u){
+            return React.createElement("div",{key:u.email,style:{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"6px 0",borderBottom:"1px solid "+C.border,fontSize:12}},
+              React.createElement("div",null,React.createElement("span",{style:{fontWeight:600}},u.name),React.createElement("span",{style:{fontSize:10,color:C.textDim,marginLeft:6}},u.requests.toLocaleString()+" reqs")),
+              React.createElement("div",{style:{textAlign:"right"}},
+                React.createElement("div",{style:{fontWeight:700}},"$"+u.cpr.toFixed(3)+"/req"),
+                React.createElement("div",{style:{fontSize:10,color:C.green}},u.efficientPct+"% efficient")));
+          }))));
+  }
+
+  return React.createElement("div",{style:{background:C.bg,minHeight:"100vh"}},
+    React.createElement(Header,null),
+    tab==="overview"&&React.createElement(OverviewTab,null),
+    tab==="leaderboard"&&React.createElement(LeaderboardTab,null),
+    tab==="allusers"&&React.createElement(AllUsersTab,null),
+    tab==="trends"&&React.createElement(TrendsTab,null),
+    tab==="flags"&&React.createElement(FlagsTab,null),
+    tab==="breakdowns"&&React.createElement(BreakdownsTab,null));
 }
+
 ReactDOM.createRoot(document.getElementById("root")).render(React.createElement(App));
+
 </script>
 </body>
 </html>
