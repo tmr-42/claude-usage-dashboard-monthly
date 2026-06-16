@@ -1,0 +1,93 @@
+{
+  "_schema_version": 1,
+  "_description": "Monthly org-level snapshots for Level Agency Claude usage. Append-only. One entry per calendar month.",
+  "_field_notes": {
+    "confirmed_fields": [
+      "totalSpend",
+      "activeUsers",
+      "avgSpend",
+      "totalRequests (May+)",
+      "model percentages (May+)",
+      "all flagCounts (May+)"
+    ],
+    "estimated_fields": [
+      "April model spend (derived from ~67/30/3% pattern)",
+      "April product spend (derived from leaderboard mix)",
+      "May product spend (derived from weekly breakdown data)"
+    ],
+    "update_process": "At each monthly run, append one new object to 'months' and new per-user entries to 'userMonths'. Never recompute prior months."
+  },
+  "months": [
+    {
+      "monthOf": "April 2026",
+      "monthStartISO": "2026-04-01",
+      "totalSpend": 17357.55,
+      "activeUsers": 213,
+      "avgSpend": 81.49,
+      "totalRequests": null,
+      "sonnetSpend": 11629.56,
+      "opusSpend": 5207.26,
+      "haikuSpend": 520.73,
+      "flagCounts": {
+        "maxPlanConfirmed": 0,
+        "maxPlanApproaching": 9,
+        "coworkOpus": 8,
+        "opusHeavy": 31,
+        "tokenDensity": 33,
+        "legacy": 19,
+        "lowEngagement": null
+      },
+      "productSpend": {
+        "Chat": 10414.53,
+        "Claude Code": 3124.36,
+        "Cowork": 2082.91,
+        "Claude Design": 1041.45,
+        "Browser Extension": 520.73,
+        "Research": 86.78,
+        "Voice Mode": 86.79
+      },
+      "_notes": {
+        "model_split": "estimated from ~67/30/3 Sonnet/Opus/Haiku; exact figures not recorded",
+        "product_split": "estimated from leaderboard user product patterns; exact totals not recorded",
+        "totalRequests": "not recorded in session summary",
+        "lowEngagement": "not recorded in session summary"
+      }
+    },
+    {
+      "monthOf": "May 2026",
+      "monthStartISO": "2026-05-01",
+      "totalSpend": 26978.53,
+      "activeUsers": 231,
+      "avgSpend": 116.79,
+      "totalRequests": 373876,
+      "sonnetSpend": 19721.27,
+      "opusSpend": 6923.46,
+      "haikuSpend": 333.8,
+      "flagCounts": {
+        "maxPlanConfirmed": 2,
+        "maxPlanApproaching": 13,
+        "coworkOpus": 12,
+        "opusHeavy": 32,
+        "tokenDensity": 0,
+        "legacy": 38,
+        "lowEngagement": 41
+      },
+      "productSpend": {
+        "Chat": 17634.01,
+        "Cowork": 4434.08,
+        "Claude Code": 3616.42,
+        "Claude in Chrome": 876.44,
+        "Claude Design": 416.0,
+        "Voice Mode": 1.57,
+        "Claude in Slack": 0.01,
+        "Research": 0.0
+      },
+      "_notes": {
+        "model_split": "confirmed from CSV: 72.4% Sonnet, 25.7% Opus, 1.2% Haiku",
+        "product_split": "confirmed from CSV \u2014 direct aggregation",
+        "totalRequests": "confirmed from CSV",
+        "legacy": "38 users with legacySpend > 0; 6 were DM-eligible (\u2265$400, not on skip list)"
+      }
+    }
+  ]
+}

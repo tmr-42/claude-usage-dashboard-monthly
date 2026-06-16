@@ -3,227 +3,166 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Claude Usage Analysis — May 2026 (Monthly)</title>
-<script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
-<script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
-<script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+<title>Claude Usage — May 2026 (Monthly)</title>
+<script src="https://unpkg.com/react@18/umd/react.production.min.js" crossorigin></script>
+<script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js" crossorigin></script>
+<script src="https://unpkg.com/@babel/standalone@7.23.10/babel.min.js" crossorigin></script>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-<style>*{box-sizing:border-box;margin:0;padding:0;}body{font-family:'Inter',-apple-system,sans-serif;background:#f7f7fb;}</style>
+<style>*{box-sizing:border-box;margin:0;padding:0}body{font-family:'Inter',-apple-system,sans-serif;background:#f7f7fb;color:#18181b}button,input,select{font-family:inherit}</style>
 </head>
 <body>
-<div id="root"></div>
-<script type="text/babel">
-const { useState, useMemo, useEffect } = React;
-const C = {bg:"#f7f7fb",card:"#ffffff",border:"#e2e4ed",accent:"#4f46e5",accentLight:"#ede9fe",accentMuted:"#818cf8",text:"#18181b",textMuted:"#6b7280",textDim:"#9ca3af",green:"#10b981",amber:"#f59e0b",red:"#ef4444",orange:"#f97316",blue:"#3b82f6"};
+<div id="root"><div style="display:flex;align-items:center;justify-content:center;min-height:100vh;font-size:14px;color:#9ca3af">Loading...</div></div>
+<script type="text/babel" data-presets="react">
+const{useState,useMemo,useEffect}=React;
+const C={bg:"#f7f7fb",card:"#fff",border:"#e2e4ed",accent:"#4f46e5",accentLight:"#ede9fe",accentMuted:"#818cf8",text:"#18181b",textMuted:"#6b7280",textDim:"#9ca3af",green:"#10b981",amber:"#f59e0b",red:"#ef4444",orange:"#f97316",blue:"#3b82f6"};
+const fmt=v=>"$"+Number(v).toLocaleString("en-US",{minimumFractionDigits:2,maximumFractionDigits:2});
 
-function formatModel(m) {
-  if (!m) return "";
-  const s = m.toLowerCase();
-  if (s.includes("opus-4-8")) return "Opus 4.8";
-  if (s.includes("opus-4-7")) return "Opus 4.7";
-  if (s.includes("opus-4-6")) return "Opus 4.6";
-  if (s.includes("opus-4-5")) return "Opus 4.5";
-  if (s.includes("3-opus")||s.includes("opus-3")) return "Claude 3 Opus";
-  if (s.includes("sonnet-4-6")) return "Sonnet 4.6";
-  if (s.includes("sonnet-4-5")) return "Sonnet 4.5";
-  if (s.includes("sonnet-4-2")||s.includes("sonnet-4-20")) return "Sonnet 4 (legacy)";
-  if (s.includes("haiku-4-5")) return "Haiku 4.5";
-  return m;
+function fmtM(m){if(!m)return"";const s=m.toLowerCase();if(s.includes("opus-4-8"))return"Opus 4.8";if(s.includes("opus-4-7"))return"Opus 4.7";if(s.includes("opus-4-6"))return"Opus 4.6";if(s.includes("opus-4-5"))return"Opus 4.5";if(s.includes("3-opus")||s.includes("opus-3"))return"Claude 3 Opus";if(s.includes("sonnet-4-6"))return"Sonnet 4.6";if(s.includes("sonnet-4-5"))return"Sonnet 4.5";if(s.includes("sonnet-4-2")||s.includes("sonnet-4-20"))return"Sonnet 4 (legacy)";if(s.includes("haiku-4-5"))return"Haiku 4.5";return m;}
+function mColor(m){if(!m)return C.textDim;const s=m.toLowerCase();if(s.includes("opus"))return C.red;if(s.includes("sonnet"))return C.accent;if(s.includes("haiku"))return C.green;return C.textDim;}
+
+function DeltaBadge({val,suffix="%",invert=false}){if(val===null||val===undefined)return null;const isGood=invert?val<0:val>0;const isNeutral=val===0;const color=isNeutral?C.textDim:isGood?C.green:C.red;const bg=isNeutral?"#f3f4f6":isGood?"#f0fdf4":"#fef2f2";const sign=val>0?"+":"";return React.createElement("span",{style:{background:bg,color,fontSize:11,fontWeight:700,padding:"2px 7px",borderRadius:99,letterSpacing:"0.02em",whiteSpace:"nowrap"}},sign+val+suffix);}
+
+function FlagPill({flag}){const cols={"max-plan":{bg:"#fef2f2",tx:"#dc2626",lb:"Max Plan"},"approaching":{bg:"#fff7ed",tx:"#c2410c",lb:"Approaching"},"cowork-opus":{bg:"#fdf4ff",tx:"#7e22ce",lb:"Cowork→Opus"},"opus-heavy":{bg:"#fef3c7",tx:"#92400e",lb:"Opus Heavy"},"legacy":{bg:"#f0fdf4",tx:"#166534",lb:"Legacy"},"low-engagement":{bg:"#f0f9ff",tx:"#0369a1",lb:"Low Usage"}};const c=cols[flag]||{bg:C.accentLight,tx:C.accent,lb:flag};return React.createElement("span",{style:{background:c.bg,color:c.tx,fontSize:10,fontWeight:700,padding:"2px 7px",borderRadius:99,letterSpacing:"0.04em",textTransform:"uppercase",whiteSpace:"nowrap",margin:"1px 2px"}},c.lb);}
+
+function MBar({modelMix}){if(!modelMix)return null;const tot=Object.values(modelMix).reduce((s,v)=>s+v.spend,0)||1;return React.createElement("div",{style:{display:"flex",height:6,borderRadius:3,overflow:"hidden",width:80,gap:1}},Object.entries(modelMix).sort((a,b)=>b[1].spend-a[1].spend).map(([m,v])=>React.createElement("div",{key:m,style:{width:`${v.spend/tot*100}%`,background:mColor(m),minWidth:v.spend>0?1:0},title:fmtM(m)+": "+fmt(v.spend)})));}
+
+function SparkLine({values,color,height=28,width=120}){if(!values||values.length<2)return null;const max=Math.max(...values);const min=Math.min(...values);const range=max-min||1;const pad=3;const iH=height-pad*2;const iW=width-pad*2;const pts=values.map((v,i)=>`${pad+(i/(values.length-1))*iW},${pad+iH-((v-min)/range)*iH}`).join(" ");const lx=pad+iW;const ly=pad+iH-((values[values.length-1]-min)/range)*iH;return React.createElement("svg",{viewBox:`0 0 ${width} ${height}`,style:{width,height}},React.createElement("polyline",{points:pts,fill:"none",stroke:color,strokeWidth:"1.5",strokeLinejoin:"round"}),React.createElement("circle",{cx:lx,cy:ly,r:"2",fill:color}));}
+
+function ExpandRow({user}){const prods=Object.entries(user.productMix||{}).sort((a,b)=>b[1].spend-a[1].spend);const models=Object.entries(user.modelMix||{}).sort((a,b)=>b[1].spend-a[1].spend);const mx=user.productModelMatrix||{};const allM=[...new Set(Object.values(mx).flatMap(m=>Object.keys(m)))].sort();const allP=Object.keys(mx).sort((a,b)=>{const sa=Object.values(mx[a]).reduce((s,v)=>s+v.spend,0);const sb=Object.values(mx[b]).reduce((s,v)=>s+v.spend,0);return sb-sa;});return React.createElement("div",{style:{padding:"16px 24px 20px",background:"#f9fafb",borderTop:`1px solid ${C.border}`,display:"grid",gridTemplateColumns:"1fr 1fr 2fr",gap:20}},React.createElement("div",null,React.createElement("div",{style:{fontSize:11,fontWeight:700,textTransform:"uppercase",letterSpacing:"0.08em",color:C.textDim,marginBottom:8}},"Product Mix"),prods.map(([p,v])=>React.createElement("div",{key:p,style:{display:"flex",justifyContent:"space-between",fontSize:12,marginBottom:4}},React.createElement("span",{style:{color:C.textMuted}},p),React.createElement("span",{style:{fontWeight:600}},fmt(v.spend))))),React.createElement("div",null,React.createElement("div",{style:{fontSize:11,fontWeight:700,textTransform:"uppercase",letterSpacing:"0.08em",color:C.textDim,marginBottom:8}},"Model Mix"),models.map(([m,v])=>React.createElement("div",{key:m,style:{display:"flex",justifyContent:"space-between",fontSize:12,marginBottom:4}},React.createElement("span",{style:{color:mColor(m)}},fmtM(m)),React.createElement("span",{style:{fontWeight:600,color:C.text}},fmt(v.spend))))),React.createElement("div",null,React.createElement("div",{style:{fontSize:11,fontWeight:700,textTransform:"uppercase",letterSpacing:"0.08em",color:C.textDim,marginBottom:8}},"Product × Model"),React.createElement("table",{style:{fontSize:11,borderCollapse:"collapse",width:"100%"}},React.createElement("thead",null,React.createElement("tr",null,React.createElement("th",{style:{textAlign:"left",padding:"2px 8px 2px 0",color:C.textDim,fontWeight:600}},"Product"),...allM.map(m=>React.createElement("th",{key:m,style:{textAlign:"right",padding:"2px 4px",color:mColor(m),fontWeight:600}},fmtM(m))),React.createElement("th",{style:{textAlign:"right",padding:"2px 0 2px 4px",color:C.textDim,fontWeight:600}},"Total"))),React.createElement("tbody",null,...allP.map((p,i)=>{const rT=allM.reduce((s,m)=>s+(mx[p]?.[m]?.spend||0),0);return React.createElement("tr",{key:p,style:{background:i%2===0?"transparent":"#f0f0f5"}},React.createElement("td",{style:{padding:"2px 8px 2px 0",color:C.textMuted}},p),...allM.map(m=>React.createElement("td",{key:m,style:{textAlign:"right",padding:"2px 4px",color:mx[p]?.[m]?.spend>0?C.text:C.textDim}},mx[p]?.[m]?.spend>0?fmt(mx[p][m].spend):"—")),React.createElement("td",{style:{textAlign:"right",padding:"2px 0 2px 4px",fontWeight:700,color:C.text}},fmt(rT)));}),...[React.createElement("tr",{key:"tot",style:{borderTop:`1px solid ${C.border}`}},React.createElement("td",{style:{padding:"4px 8px 2px 0",fontWeight:700}},"Total"),...allM.map(m=>{const mT=allP.reduce((s,p)=>s+(mx[p]?.[m]?.spend||0),0);return React.createElement("td",{key:m,style:{textAlign:"right",padding:"4px 4px 2px",fontWeight:700,color:mColor(m)}},fmt(mT));}),React.createElement("td",{style:{textAlign:"right",padding:"4px 0 2px 4px",fontWeight:700,color:C.text}},fmt(Object.values(user.modelMix||{}).reduce((s,v)=>s+v.spend,0))))]))));}
+
+function StatCard({label,value,sub,accent,delta,deltaInvert=false}){return React.createElement("div",{style:{background:C.card,border:`1px solid ${C.border}`,borderRadius:10,padding:"16px 20px",flex:1,minWidth:140}},React.createElement("div",{style:{fontSize:11,fontWeight:700,textTransform:"uppercase",letterSpacing:"0.08em",color:C.textDim,marginBottom:6}},label),React.createElement("div",{style:{display:"flex",alignItems:"baseline",gap:8,flexWrap:"wrap"}},React.createElement("div",{style:{fontSize:24,fontWeight:800,letterSpacing:"-0.03em",color:accent||C.text}},value),delta!==undefined&&delta!==null&&React.createElement(DeltaBadge,{val:delta,suffix:"%",invert:deltaInvert})),sub&&React.createElement("div",{style:{fontSize:12,color:C.textMuted,marginTop:2}},sub));}
+
+function App(){
+  const[DATA,setDATA]=useState(null);
+  const[tab,setTab]=useState("overview");
+  const[exp,setExp]=useState(null);
+  const[auExp,setAuExp]=useState(null);
+  const[search,setSearch]=useState("");
+  const[sort,setSort]=useState("spend");
+  const[flagSec,setFlagSec]=useState("max");
+
+  useEffect(()=>{fetch("./data.json").then(r=>r.json()).then(setDATA).catch(e=>setDATA({error:e.message}));},[]);
+  if(!DATA)return React.createElement("div",{style:{display:"flex",alignItems:"center",justifyContent:"center",minHeight:"100vh",color:C.textMuted}},"Loading...");
+  if(DATA.error)return React.createElement("div",{style:{padding:40,color:C.red}},"Error: "+DATA.error);
+
+  const s=DATA.summary;
+  const mom=DATA.trends?.mom;
+  const TABS=[{id:"overview",lb:"Overview"},{id:"leaderboard",lb:"Leaderboard"},{id:"allusers",lb:"All Users"},{id:"trends",lb:"Trends"},{id:"flags",lb:"Flags & Alerts"},{id:"breakdowns",lb:"Breakdowns"}];
+  const filtered=(DATA.allUsers||[]).filter(u=>!search||u.name.toLowerCase().includes(search.toLowerCase())||u.email.toLowerCase().includes(search.toLowerCase())).sort((a,b)=>sort==="spend"?b.spend-a.spend:sort==="requests"?b.requests-a.requests:b.cpr-a.cpr);
+  const months=DATA.trends?.months||[];
+
+  const TrendHeader=()=>React.createElement("div",{style:{display:"grid",gridTemplateColumns:"160px 1fr 90px 90px 100px",gap:12,padding:"0 0 8px",borderBottom:`2px solid ${C.border}`,marginBottom:4}},["Metric","Trend","April","May","MoM"].map(h=>React.createElement("span",{key:h,style:{textAlign:h==="April"||h==="May"?"right":"h"==="MoM"?"center":"left",fontSize:11,fontWeight:700,textTransform:"uppercase",color:C.textDim}},h)));
+
+  const TrendRow=({label,values,fmtFn=fmt,color=C.accent,aprilVal,mayVal,deltaPct,deltaInvert=false})=>React.createElement("div",{style:{display:"grid",gridTemplateColumns:"160px 1fr 90px 90px 100px",gap:12,alignItems:"center",padding:"10px 0",borderBottom:`1px solid ${C.border}`}},
+    React.createElement("span",{style:{fontSize:13,color:C.textMuted}},label),
+    React.createElement(SparkLine,{values,color,width:120,height:28}),
+    React.createElement("span",{style:{textAlign:"right",fontSize:12,color:C.textDim}},fmtFn(aprilVal)),
+    React.createElement("span",{style:{textAlign:"right",fontSize:13,fontWeight:700}},fmtFn(mayVal)),
+    React.createElement("div",{style:{display:"flex",justifyContent:"flex-start"}},deltaPct!==null&&deltaPct!==undefined&&React.createElement(DeltaBadge,{val:deltaPct,suffix:"%",invert:deltaInvert})));
+
+  return React.createElement("div",{style:{background:C.bg,minHeight:"100vh"}},
+    React.createElement("div",{style:{padding:"20px 24px 0",borderBottom:`1px solid ${C.border}`,background:C.card}},
+      React.createElement("div",{style:{display:"flex",alignItems:"baseline",gap:12,marginBottom:4,flexWrap:"wrap"}},
+        React.createElement("h1",{style:{fontSize:20,fontWeight:800,letterSpacing:"-0.03em"}},"Claude Usage Analysis"),
+        React.createElement("span",{style:{fontSize:12,color:C.textMuted,fontFamily:"monospace"}},s.monthOf),
+        React.createElement("span",{style:{fontSize:11,background:C.accentLight,color:C.accent,padding:"2px 8px",borderRadius:99,fontWeight:700}},"Monthly"),
+        React.createElement("span",{style:{fontSize:11,color:C.textDim,marginLeft:"auto",fontFamily:"monospace"}},months.length+" months in history")),
+      React.createElement("div",{style:{display:"flex",gap:0,marginTop:12}},TABS.map(t=>React.createElement("button",{key:t.id,onClick:()=>setTab(t.id),style:{background:"none",border:"none",color:tab===t.id?C.accent:C.textDim,fontSize:13,fontWeight:600,padding:"8px 16px",cursor:"pointer",borderBottom:tab===t.id?`2px solid ${C.accent}`:"2px solid transparent",marginBottom:-1}},t.lb)))),
+
+    tab==="overview"&&React.createElement("div",{style:{padding:24}},
+      React.createElement("div",{style:{display:"flex",gap:12,flexWrap:"wrap",marginBottom:24}},
+        React.createElement(StatCard,{label:"Total Spend",value:fmt(s.totalSpend),sub:s.activeUsers+" active users",accent:C.accent,delta:mom?.spend?.deltaPct}),
+        React.createElement(StatCard,{label:"Avg / User",value:fmt(s.avgSpend),sub:"per month",delta:mom?.avgSpend?.deltaPct}),
+        React.createElement(StatCard,{label:"Total Requests",value:s.totalRequests.toLocaleString(),sub:(s.totalPromptTokens/1e9).toFixed(1)+"B prompt tokens"}),
+        React.createElement(StatCard,{label:"Top 10 Users",value:fmt(s.top10Spend),sub:s.top10Pct+"% of total"})),
+      mom&&React.createElement("div",{style:{background:C.card,border:`1px solid ${C.border}`,borderRadius:10,padding:"14px 20px",marginBottom:16,display:"flex",gap:24,flexWrap:"wrap",alignItems:"center"}},
+        React.createElement("div",{style:{fontSize:12,fontWeight:700,color:C.textDim,textTransform:"uppercase",letterSpacing:"0.06em"}},"vs April 2026"),
+        ...[{label:"Spend",val:mom.spend.deltaPct},{label:"Users",val:mom.users.deltaPct},{label:"Avg/User",val:mom.avgSpend.deltaPct},{label:"Opus spend",val:mom.opusSpend.deltaPct,inv:true},{label:"Opus %",val:mom.opusPct.delta,sfx:"pp",inv:true},{label:"Sonnet %",val:mom.sonnetPct.delta,sfx:"pp"}].map(({label,val,sfx="%",inv=false})=>React.createElement("div",{key:label,style:{display:"flex",flexDirection:"column",gap:3}},React.createElement("div",{style:{fontSize:11,color:C.textDim}},label),React.createElement(DeltaBadge,{val,suffix:sfx,invert:inv})))),
+      React.createElement("div",{style:{display:"grid",gridTemplateColumns:"1fr 1fr",gap:16,marginBottom:16}},
+        React.createElement("div",{style:{background:C.card,border:`1px solid ${C.border}`,borderRadius:10,padding:20}},
+          React.createElement("div",{style:{fontSize:13,fontWeight:700,marginBottom:16}},"Model Mix"),
+          React.createElement("div",{style:{display:"flex",height:12,borderRadius:6,overflow:"hidden",marginBottom:16,gap:2}},React.createElement("div",{style:{width:s.sonnetPct+"%",background:C.accent}}),React.createElement("div",{style:{width:s.opusPct+"%",background:C.red}}),React.createElement("div",{style:{width:s.haikuPct+"%",background:C.green}})),
+          [{name:"Sonnet",spend:s.sonnetSpend,pct:s.sonnetPct,color:C.accent,d:mom?.sonnetPct?.delta},{name:"Opus",spend:s.opusSpend,pct:s.opusPct,color:C.red,d:mom?.opusPct?.delta,inv:true},{name:"Haiku",spend:s.haikuSpend,pct:s.haikuPct,color:C.green}].map(f=>React.createElement("div",{key:f.name,style:{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:8}},React.createElement("div",{style:{display:"flex",alignItems:"center",gap:8}},React.createElement("div",{style:{width:10,height:10,borderRadius:"50%",background:f.color}}),React.createElement("span",{style:{fontSize:13,color:C.textMuted}},f.name)),React.createElement("div",{style:{display:"flex",alignItems:"center",gap:8}},React.createElement("span",{style:{fontSize:13,fontWeight:700}},fmt(f.spend)),React.createElement("span",{style:{fontSize:11,color:C.textDim}},f.pct+"%"),f.d!==undefined&&React.createElement(DeltaBadge,{val:f.d,suffix:"pp",invert:f.inv}))))),
+        React.createElement("div",{style:{background:C.card,border:`1px solid ${C.border}`,borderRadius:10,padding:20}},
+          React.createElement("div",{style:{fontSize:13,fontWeight:700,marginBottom:16}},"Product Mix"),
+          (DATA.products||[]).filter(p=>p.spend>0).map((p,i)=>{const md=mom?.products?.[p.name]?.deltaPct;return React.createElement("div",{key:p.name,style:{marginBottom:10}},React.createElement("div",{style:{display:"flex",justifyContent:"space-between",marginBottom:3,alignItems:"center"}},React.createElement("span",{style:{fontSize:12,color:C.textMuted}},p.name),React.createElement("div",{style:{display:"flex",gap:8,alignItems:"center"}},React.createElement("span",{style:{fontSize:12,fontWeight:700}},fmt(p.spend)+" ("+p.pct+"%)"),md!==null&&md!==undefined&&React.createElement(DeltaBadge,{val:md,suffix:"%"}))),React.createElement("div",{style:{height:4,background:C.border,borderRadius:2,overflow:"hidden"}},React.createElement("div",{style:{width:p.pct+"%",height:"100%",background:[C.accent,C.accentMuted,C.blue,C.green,C.amber,C.orange][i%6]}})));}))),
+      React.createElement("div",{style:{background:C.card,border:`1px solid ${C.border}`,borderRadius:10,padding:20}},
+        React.createElement("div",{style:{fontSize:13,fontWeight:700,marginBottom:14}},"Flag Summary"),
+        React.createElement("div",{style:{display:"flex",gap:12,flexWrap:"wrap"}},
+          [{label:"Max Plan Confirmed",count:(DATA.maxPlan||[]).length,color:C.red,desc:"≥$800/mo",mk:"maxPlanConfirmed"},{label:"Max Plan Approaching",count:(DATA.maxApproaching||[]).length,color:C.orange,desc:"$400–$799",mk:"maxPlanApproaching"},{label:"Cowork→Opus",count:(DATA.coworkOpus||[]).length,color:"#7e22ce",desc:"auto-routed",mk:"coworkOpus"},{label:"Opus-Heavy Chat",count:(DATA.opusHeavy||[]).length,color:C.amber,desc:"≥30% Opus",mk:"opusHeavy"},{label:"Legacy Models",count:(DATA.legacyModels||[]).length,color:C.green,desc:"deprecated",mk:"legacy"},{label:"Low Engagement",count:(DATA.lowEngagement||[]).length,color:C.blue,desc:"<$10/mo",mk:"lowEngagement"}].map(f=>{const ap=mom?.flags?.[f.mk]?.april;const fd=ap!==null&&ap!==undefined?f.count-ap:null;return React.createElement("div",{key:f.label,style:{background:C.bg,border:`1px solid ${C.border}`,borderRadius:8,padding:"12px 16px",minWidth:110,flex:1}},React.createElement("div",{style:{display:"flex",alignItems:"baseline",gap:8,marginBottom:2}},React.createElement("div",{style:{fontSize:22,fontWeight:800,color:f.color,letterSpacing:"-0.03em"}},f.count),fd!==null&&React.createElement(DeltaBadge,{val:fd,suffix:"",invert:f.label!=="Max Plan Confirmed"&&f.label!=="Max Plan Approaching"})),React.createElement("div",{style:{fontSize:12,fontWeight:600}},f.label),React.createElement("div",{style:{fontSize:11,color:C.textDim}},f.desc));}))));,
+
+    tab==="leaderboard"&&React.createElement("div",{style:{padding:24}},
+      React.createElement("div",{style:{background:C.card,border:`1px solid ${C.border}`,borderRadius:10,overflow:"hidden"}},
+        React.createElement("div",{style:{display:"grid",gridTemplateColumns:"28px 1fr 100px 80px 80px 80px 80px 120px",gap:8,padding:"10px 16px",background:C.bg,borderBottom:`1px solid ${C.border}`,fontSize:11,fontWeight:700,textTransform:"uppercase",color:C.textDim}},"# User Spend Reqs $/Req Opus% ModelMix Flags".split(" ").map((h,i)=>React.createElement("span",{key:i,style:{textAlign:i>1?"right":"left"}},h))),
+        (DATA.leaderboard||[]).map((u,i)=>React.createElement("div",{key:u.email},
+          React.createElement("div",{onClick:()=>setExp(exp===u.email?null:u.email),style:{display:"grid",gridTemplateColumns:"28px 1fr 100px 80px 80px 80px 80px 120px",gap:8,padding:"12px 16px",borderBottom:`1px solid ${C.border}`,cursor:"pointer",background:exp===u.email?C.accentLight:i%2===0?C.card:"#f9fafb",alignItems:"center"}},
+            React.createElement("span",{style:{fontSize:12,color:C.textDim,fontWeight:600}},i+1),
+            React.createElement("div",null,React.createElement("div",{style:{fontSize:13,fontWeight:600}},u.name),React.createElement("div",{style:{fontSize:11,color:C.textDim}},u.email)),
+            React.createElement("span",{style:{textAlign:"right",fontSize:13,fontWeight:700}},fmt(u.spend)),
+            React.createElement("span",{style:{textAlign:"right",fontSize:12,color:C.textMuted}},u.requests.toLocaleString()),
+            React.createElement("span",{style:{textAlign:"right",fontSize:12,color:C.textMuted}},"$"+u.cpr.toFixed(3)),
+            React.createElement("span",{style:{textAlign:"right",fontSize:12,color:u.opusPct>30?C.red:C.textMuted}},u.opusPct+"%"),
+            React.createElement(MBar,{modelMix:u.modelMix}),
+            React.createElement("div",{style:{display:"flex",gap:3,flexWrap:"wrap"}},(u.flags||[]).map(f=>React.createElement(FlagPill,{key:f,flag:f})))),
+          exp===u.email&&React.createElement(ExpandRow,{user:u}))))),
+
+    tab==="allusers"&&React.createElement("div",{style:{padding:24}},
+      React.createElement("div",{style:{display:"flex",gap:10,marginBottom:16,alignItems:"center"}},
+        React.createElement("input",{value:search,onChange:e=>setSearch(e.target.value),placeholder:"Search users...",style:{padding:"8px 12px",borderRadius:6,border:`1px solid ${C.border}`,fontSize:13,width:240,outline:"none",background:C.card}}),
+        React.createElement("select",{value:sort,onChange:e=>setSort(e.target.value),style:{padding:"8px 10px",borderRadius:6,border:`1px solid ${C.border}`,fontSize:13,background:C.card}},React.createElement("option",{value:"spend"},"Sort: Spend"),React.createElement("option",{value:"requests"},"Sort: Requests"),React.createElement("option",{value:"cpr"},"Sort: $/Req")),
+        React.createElement("span",{style:{fontSize:12,color:C.textDim}},filtered.length+" users")),
+      React.createElement("div",{style:{background:C.card,border:`1px solid ${C.border}`,borderRadius:10,overflow:"hidden"}},
+        React.createElement("div",{style:{display:"grid",gridTemplateColumns:"1fr 100px 70px 70px 80px 80px 110px",gap:8,padding:"10px 16px",background:C.bg,borderBottom:`1px solid ${C.border}`,fontSize:11,fontWeight:700,textTransform:"uppercase",color:C.textDim}},"User Spend Reqs $/Req ModelMix TopProduct Flags".split(" ").map((h,i)=>React.createElement("span",{key:i,style:{textAlign:i>0&&i<4?"right":"left"}},h))),
+        filtered.map((u,i)=>React.createElement("div",{key:u.email},
+          React.createElement("div",{onClick:()=>setAuExp(auExp===u.email?null:u.email),style:{display:"grid",gridTemplateColumns:"1fr 100px 70px 70px 80px 80px 110px",gap:8,padding:"10px 16px",borderBottom:`1px solid ${C.border}`,cursor:"pointer",background:auExp===u.email?C.accentLight:i%2===0?C.card:"#f9fafb",alignItems:"center"}},
+            React.createElement("div",null,React.createElement("div",{style:{fontSize:12,fontWeight:600}},u.name),React.createElement("div",{style:{fontSize:11,color:C.textDim}},u.email)),
+            React.createElement("span",{style:{textAlign:"right",fontSize:12,fontWeight:700}},fmt(u.spend)),
+            React.createElement("span",{style:{textAlign:"right",fontSize:11,color:C.textMuted}},u.requests.toLocaleString()),
+            React.createElement("span",{style:{textAlign:"right",fontSize:11,color:C.textMuted}},"$"+u.cpr.toFixed(3)),
+            React.createElement(MBar,{modelMix:u.modelMix}),
+            React.createElement("span",{style:{fontSize:11,color:C.textMuted,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}},u.topProduct),
+            React.createElement("div",{style:{display:"flex",gap:2,flexWrap:"wrap"}},(u.flags||[]).map(f=>React.createElement(FlagPill,{key:f,flag:f})))),
+          auExp===u.email&&React.createElement(ExpandRow,{user:u}))))),
+
+    tab==="trends"&&React.createElement("div",{style:{padding:24}},
+      months.length<2?React.createElement("div",{style:{padding:40,textAlign:"center",color:C.textMuted}},"Need 2+ months of history for trends."):React.createElement("div",null,
+        React.createElement("div",{style:{background:C.card,border:`1px solid ${C.border}`,borderRadius:10,padding:20,marginBottom:16}},
+          React.createElement("div",{style:{fontSize:13,fontWeight:700,marginBottom:4}},"Month-over-Month Summary"),
+          React.createElement("div",{style:{fontSize:12,color:C.textMuted,marginBottom:20}},"April 2026 → May 2026"),
+          React.createElement("div",{style:{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:16}},
+            ...[{label:"Total Spend",av:mom.spend.april,mv:mom.spend.may,d:mom.spend.deltaPct,f:fmt},{label:"Active Users",av:mom.users.april,mv:mom.users.may,d:mom.users.deltaPct,f:v=>v.toLocaleString()},{label:"Avg Spend/User",av:mom.avgSpend.april,mv:mom.avgSpend.may,d:mom.avgSpend.deltaPct,f:fmt},{label:"Opus Spend",av:mom.opusSpend.april,mv:mom.opusSpend.may,d:mom.opusSpend.deltaPct,f:fmt,inv:true},{label:"Opus Mix %",av:mom.opusPct.april+"%",mv:mom.opusPct.may+"%",d:mom.opusPct.delta,sfx:"pp",inv:true,f:v=>v},{label:"Sonnet Mix %",av:mom.sonnetPct.april+"%",mv:mom.sonnetPct.may+"%",d:mom.sonnetPct.delta,sfx:"pp",f:v=>v}].map(({label,av,mv,d,f,sfx="%",inv=false})=>React.createElement("div",{key:label,style:{background:C.bg,borderRadius:8,padding:"12px 16px"}},React.createElement("div",{style:{fontSize:11,color:C.textDim,marginBottom:6}},label),React.createElement("div",{style:{display:"flex",justifyContent:"space-between",alignItems:"baseline",marginBottom:4}},React.createElement("div",{style:{fontSize:11,color:C.textMuted}},"Apr ",React.createElement("span",{style:{color:C.text,fontWeight:600}},f(av))),React.createElement("div",{style:{fontSize:13,fontWeight:800}},"May ",f(mv))),React.createElement(DeltaBadge,{val:d,suffix:sfx,invert:inv}))))),
+        ...[
+          {title:"Spend & Volume",rows:[{label:"Total Spend",vals:months.map(m=>m.totalSpend),color:C.accent,av:mom.spend.april,mv:mom.spend.may,d:mom.spend.deltaPct},{label:"Active Users",vals:months.map(m=>m.activeUsers),color:C.blue,av:mom.users.april,mv:mom.users.may,d:mom.users.deltaPct,f:v=>v.toLocaleString()},{label:"Avg / User",vals:months.map(m=>m.avgSpend),color:C.accentMuted,av:mom.avgSpend.april,mv:mom.avgSpend.may,d:mom.avgSpend.deltaPct}]},
+          {title:"Model Mix",rows:[{label:"Opus Spend",vals:months.map(m=>m.opusSpend),color:C.red,av:mom.opusSpend.april,mv:mom.opusSpend.may,d:mom.opusSpend.deltaPct,inv:true},{label:"Sonnet Spend",vals:months.map(m=>m.sonnetSpend),color:C.accent,av:months[0].sonnetSpend,mv:months[1].sonnetSpend,d:Math.round((months[1].sonnetSpend/months[0].sonnetSpend-1)*1000)/10},{label:"Opus %",vals:months.map(m=>m.opusPct),color:C.red,av:mom.opusPct.april,mv:mom.opusPct.may,d:mom.opusPct.delta,inv:true,f:v=>v+"%"},{label:"Sonnet %",vals:months.map(m=>m.sonnetPct),color:C.accent,av:mom.sonnetPct.april,mv:mom.sonnetPct.may,d:mom.sonnetPct.delta,f:v=>v+"%"}]},
+          {title:"Flag Counts",rows:[{label:"Cowork→Opus",vals:months.map(m=>m.flagCounts?.coworkOpus||0),color:"#7e22ce",av:mom.flags.coworkOpus.april,mv:mom.flags.coworkOpus.may,d:mom.flags.coworkOpus.may-mom.flags.coworkOpus.april,inv:true,f:v=>v!==null?String(v):"—"},{label:"Opus-Heavy Chat",vals:months.map(m=>m.flagCounts?.opusHeavy||0),color:C.amber,av:mom.flags.opusHeavy.april,mv:mom.flags.opusHeavy.may,d:mom.flags.opusHeavy.may-mom.flags.opusHeavy.april,inv:true,f:v=>String(v)},{label:"Legacy Models",vals:months.map(m=>m.flagCounts?.legacy||0),color:C.green,av:mom.flags.legacy.april,mv:mom.flags.legacy.may,d:mom.flags.legacy.may-mom.flags.legacy.april,inv:true,f:v=>String(v)},{label:"Max Plan Confirmed",vals:months.map(m=>m.flagCounts?.maxPlanConfirmed||0),color:C.red,av:mom.flags.maxPlanConfirmed.april,mv:mom.flags.maxPlanConfirmed.may,d:mom.flags.maxPlanConfirmed.may-mom.flags.maxPlanConfirmed.april,f:v=>String(v)}]},
+          {title:"Product Spend",rows:["Chat","Cowork","Claude Code","Claude in Chrome","Claude Design"].map((p,i)=>{const cols={Chat:C.accent,Cowork:C.blue,"Claude Code":C.green,"Claude in Chrome":C.amber,"Claude Design":C.orange};return{label:p,vals:months.map(m=>m.productSpend?.[p]||0),color:cols[p]||C.textDim,av:mom.products[p]?.april||0,mv:mom.products[p]?.may||0,d:mom.products[p]?.deltaPct};})}
+        ].map(({title,rows})=>React.createElement("div",{key:title,style:{background:C.card,border:`1px solid ${C.border}`,borderRadius:10,padding:20,marginBottom:16}},
+          React.createElement("div",{style:{fontSize:13,fontWeight:700,marginBottom:16}},title),
+          React.createElement("div",{style:{display:"grid",gridTemplateColumns:"160px 1fr 90px 90px 100px",gap:12,padding:"0 0 8px",borderBottom:`2px solid ${C.border}`,marginBottom:4}},["Metric","Trend","April","May","MoM"].map(h=>React.createElement("span",{key:h,style:{fontSize:11,fontWeight:700,textTransform:"uppercase",color:C.textDim}},h))),
+          rows.map(r=>React.createElement("div",{key:r.label,style:{display:"grid",gridTemplateColumns:"160px 1fr 90px 90px 100px",gap:12,alignItems:"center",padding:"10px 0",borderBottom:`1px solid ${C.border}`}},
+            React.createElement("span",{style:{fontSize:13,color:C.textMuted}},r.label),
+            React.createElement(SparkLine,{values:r.vals,color:r.color,width:120,height:28}),
+            React.createElement("span",{style:{textAlign:"right",fontSize:12,color:C.textDim}},(r.f||fmt)(r.av)),
+            React.createElement("span",{style:{textAlign:"right",fontSize:13,fontWeight:700}},(r.f||fmt)(r.mv)),
+            React.createElement("div",null,r.d!==null&&r.d!==undefined&&React.createElement(DeltaBadge,{val:r.d,suffix:"%",invert:r.inv}))))))),
+
+    tab==="flags"&&React.createElement("div",{style:{padding:24}},
+      React.createElement("div",{style:{display:"flex",gap:6,marginBottom:20,flexWrap:"wrap"}},
+        [{id:"max",lb:"Max Plan ("+((DATA.maxPlan||[]).length+(DATA.maxApproaching||[]).length)+")"},{id:"cowork",lb:"Cowork→Opus ("+((DATA.coworkOpus||[]).length)+")"},{id:"opus",lb:"Opus Heavy ("+((DATA.opusHeavy||[]).length)+")"},{id:"legacy",lb:"Legacy ("+((DATA.legacyModels||[]).length)+")"},{id:"loweng",lb:"Low Engagement ("+((DATA.lowEngagement||[]).length)+")"}].map(sec=>React.createElement("button",{key:sec.id,onClick:()=>setFlagSec(sec.id),style:{padding:"6px 14px",borderRadius:99,border:`1px solid ${flagSec===sec.id?C.accent:C.border}`,background:flagSec===sec.id?C.accentLight:C.card,color:flagSec===sec.id?C.accent:C.textMuted,fontSize:12,fontWeight:600,cursor:"pointer"}},sec.lb))),
+      flagSec==="max"&&React.createElement("div",null,
+        (DATA.maxPlan||[]).length>0&&React.createElement("div",{style:{background:"#fef2f2",border:"1px solid #fca5a5",borderRadius:10,padding:16,marginBottom:16}},React.createElement("div",{style:{fontSize:13,fontWeight:700,color:"#dc2626",marginBottom:10}},"Confirmed Max Plan (≥$800/mo)"),(DATA.maxPlan||[]).map(u=>React.createElement("div",{key:u.email,style:{display:"flex",justifyContent:"space-between",padding:"6px 0",borderBottom:"1px solid #fca5a5",fontSize:13}},React.createElement("div",null,React.createElement("span",{style:{fontWeight:600}},u.name)," ",React.createElement("span",{style:{color:C.textDim,fontSize:11}},u.email)),React.createElement("span",{style:{fontWeight:700,color:"#dc2626"}},fmt(u.spend))))),
+        React.createElement("div",{style:{background:"#fff7ed",border:"1px solid #fdba74",borderRadius:10,padding:16}},React.createElement("div",{style:{fontSize:13,fontWeight:700,color:"#c2410c",marginBottom:10}},"Approaching Max Plan ($400–$799) — "+(DATA.maxApproaching||[]).length+" users"),(DATA.maxApproaching||[]).map(u=>React.createElement("div",{key:u.email,style:{display:"flex",justifyContent:"space-between",padding:"6px 0",borderBottom:"1px solid #fdba74",fontSize:13}},React.createElement("div",null,React.createElement("span",{style:{fontWeight:600}},u.name)," ",React.createElement("span",{style:{color:C.textDim,fontSize:11}},u.email)),React.createElement("span",{style:{fontWeight:700,color:"#c2410c"}},fmt(u.spend)))))),
+      flagSec==="cowork"&&React.createElement("div",{style:{background:C.card,border:`1px solid ${C.border}`,borderRadius:10,overflow:"hidden"}},React.createElement("div",{style:{padding:"10px 16px",background:C.bg,borderBottom:`1px solid ${C.border}`,fontSize:11,fontWeight:700,textTransform:"uppercase",color:C.textDim}},(DATA.coworkOpus||[]).length+" users routing Cowork to Opus"),(DATA.coworkOpus||[]).map((u,i)=>React.createElement("div",{key:u.email,style:{display:"grid",gridTemplateColumns:"1fr 100px 80px 80px 100px",gap:8,padding:"10px 16px",borderBottom:`1px solid ${C.border}`,background:i%2===0?C.card:"#f9fafb",alignItems:"center"}},React.createElement("div",null,React.createElement("div",{style:{fontSize:13,fontWeight:600}},u.name),React.createElement("div",{style:{fontSize:11,color:C.textDim}},u.email)),React.createElement("span",{style:{textAlign:"right",fontWeight:700,fontSize:13}},fmt(u.spend)),React.createElement("span",{style:{textAlign:"right",fontSize:12,color:C.textMuted}},u.requests.toLocaleString()+" reqs"),React.createElement("span",{style:{textAlign:"right",fontSize:12,color:C.textMuted}},fmt(u.totalSpend)+" total"),React.createElement("span",{style:{textAlign:"right",fontSize:11,color:"#7e22ce",fontWeight:600}},fmtM(u.model))))),
+      flagSec==="opus"&&React.createElement("div",{style:{background:C.card,border:`1px solid ${C.border}`,borderRadius:10,overflow:"hidden"}},React.createElement("div",{style:{padding:"10px 16px",background:C.bg,borderBottom:`1px solid ${C.border}`,fontSize:11,fontWeight:700,textTransform:"uppercase",color:C.textDim}},(DATA.opusHeavy||[]).length+" users with ≥30% Chat spend on Opus"),(DATA.opusHeavy||[]).map((u,i)=>React.createElement("div",{key:u.email,style:{display:"grid",gridTemplateColumns:"1fr 80px 100px 100px 100px",gap:8,padding:"10px 16px",borderBottom:`1px solid ${C.border}`,background:i%2===0?C.card:"#f9fafb",alignItems:"center"}},React.createElement("div",null,React.createElement("div",{style:{fontSize:13,fontWeight:600}},u.name),React.createElement("div",{style:{fontSize:11,color:C.textDim}},u.email)),React.createElement("span",{style:{textAlign:"right",fontSize:13,fontWeight:700,color:C.red}},u.opusPct+"%"),React.createElement("span",{style:{textAlign:"right",fontSize:12,color:C.red}},"Opus "+fmt(u.opusSpend)),React.createElement("span",{style:{textAlign:"right",fontSize:12,color:C.textMuted}},"Chat "+fmt(u.chatSpend)),React.createElement("span",{style:{textAlign:"right",fontSize:12,color:C.textDim}},"Total "+fmt(u.totalSpend))))),
+      flagSec==="legacy"&&React.createElement("div",{style:{background:C.card,border:`1px solid ${C.border}`,borderRadius:10,overflow:"hidden"}},React.createElement("div",{style:{padding:"10px 16px",background:C.bg,borderBottom:`1px solid ${C.border}`,fontSize:11,fontWeight:700,textTransform:"uppercase",color:C.textDim}},(DATA.legacyModels||[]).length+" users on deprecated model versions"),(DATA.legacyModels||[]).map((u,i)=>React.createElement("div",{key:u.email,style:{display:"grid",gridTemplateColumns:"1fr 100px 100px 1fr",gap:8,padding:"10px 16px",borderBottom:`1px solid ${C.border}`,background:i%2===0?C.card:"#f9fafb",alignItems:"center"}},React.createElement("div",null,React.createElement("div",{style:{fontSize:13,fontWeight:600}},u.name),React.createElement("div",{style:{fontSize:11,color:C.textDim}},u.email)),React.createElement("span",{style:{textAlign:"right",fontSize:12,fontWeight:600}},fmt(u.legacySpend)),React.createElement("span",{style:{textAlign:"right",fontSize:12,color:C.textDim}},"Total "+fmt(u.totalSpend)),React.createElement("div",{style:{display:"flex",gap:4,flexWrap:"wrap"}},(u.models||[]).map(m=>React.createElement("span",{key:m,style:{fontSize:10,background:"#dcfce7",color:"#166534",padding:"2px 6px",borderRadius:99,fontWeight:600}},fmtM(m))))))),
+      flagSec==="loweng"&&React.createElement("div",null,React.createElement("div",{style:{background:"#f0f9ff",border:"1px solid #7dd3fc",borderRadius:10,padding:"10px 16px",marginBottom:12,fontSize:12,color:"#0369a1"}},"Low engagement tracks seat utilization, not cost. "+(DATA.lowEngagement||[]).length+" users with <$10 spend this month."),React.createElement("div",{style:{background:C.card,border:`1px solid ${C.border}`,borderRadius:10,overflow:"hidden"}},(DATA.lowEngagement||[]).map((u,i)=>React.createElement("div",{key:u.email,style:{display:"grid",gridTemplateColumns:"1fr 100px 80px",gap:8,padding:"10px 16px",borderBottom:`1px solid ${C.border}`,background:i%2===0?C.card:"#f9fafb",alignItems:"center"}},React.createElement("div",null,React.createElement("div",{style:{fontSize:13,fontWeight:600}},u.name),React.createElement("div",{style:{fontSize:11,color:C.textDim}},u.email)),React.createElement("span",{style:{textAlign:"right",fontSize:12}},fmt(u.spend)),React.createElement("span",{style:{textAlign:"right",fontSize:12,color:C.textDim}},u.requests+" reqs")))))),
+
+    tab==="breakdowns"&&React.createElement("div",{style:{padding:24}},
+      React.createElement("div",{style:{display:"grid",gridTemplateColumns:"1fr 1fr",gap:16}},
+        React.createElement("div",{style:{background:C.card,border:`1px solid ${C.border}`,borderRadius:10,padding:20}},React.createElement("div",{style:{fontSize:13,fontWeight:700,marginBottom:14}},"Model Versions"),(DATA.models||[]).map(m=>React.createElement("div",{key:m.name,style:{marginBottom:10}},React.createElement("div",{style:{display:"flex",justifyContent:"space-between",marginBottom:3,alignItems:"center"}},React.createElement("div",{style:{display:"flex",alignItems:"center",gap:6}},React.createElement("span",{style:{fontSize:12,color:mColor(m.name),fontWeight:600}},fmtM(m.name)),m.isLegacy&&React.createElement("span",{style:{fontSize:9,background:"#dcfce7",color:"#166534",padding:"1px 5px",borderRadius:99,fontWeight:700,textTransform:"uppercase"}},"legacy")),React.createElement("span",{style:{fontSize:12,fontWeight:700}},fmt(m.spend)+" ",React.createElement("span",{style:{color:C.textDim,fontWeight:400}},"("+m.pct+"%)"))),React.createElement("div",{style:{height:4,background:C.border,borderRadius:2,overflow:"hidden"}},React.createElement("div",{style:{width:m.pct+"%",height:"100%",background:mColor(m.name)}})),React.createElement("div",{style:{fontSize:10,color:C.textDim,marginTop:2}},m.requests.toLocaleString()+" reqs")))),
+        React.createElement("div",{style:{background:C.card,border:`1px solid ${C.border}`,borderRadius:10,padding:20}},React.createElement("div",{style:{fontSize:13,fontWeight:700,marginBottom:4}},"Power Users"),React.createElement("div",{style:{fontSize:11,color:C.textDim,marginBottom:12}},"≥85% Sonnet/Haiku | ≥$100 | ≥100 reqs"),(DATA.powerUsers||[]).slice(0,12).map(u=>React.createElement("div",{key:u.email,style:{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"6px 0",borderBottom:`1px solid ${C.border}`,fontSize:12}},React.createElement("div",null,React.createElement("span",{style:{fontWeight:600}},u.name),React.createElement("span",{style:{fontSize:10,color:C.textDim,marginLeft:6}},u.requests.toLocaleString()+" reqs")),React.createElement("div",{style:{textAlign:"right"}},React.createElement("div",{style:{fontWeight:700}},"$"+u.cpr.toFixed(3)+"/req"),React.createElement("div",{style:{fontSize:10,color:C.green}},u.efficientPct+"% efficient")))))))));
 }
-function modelColor(m) {
-  if (!m) return C.textDim;
-  const s = m.toLowerCase();
-  if (s.includes("opus")) return C.red;
-  if (s.includes("sonnet")) return C.accent;
-  if (s.includes("haiku")) return C.green;
-  return C.textDim;
-}
-const fmt = v => "$"+Number(v).toLocaleString("en-US",{minimumFractionDigits:2,maximumFractionDigits:2});
-
-function FlagPill({flag}) {
-  const colors = {"max-plan":{bg:"#fef2f2",text:"#dc2626",label:"Max Plan"},"approaching":{bg:"#fff7ed",text:"#c2410c",label:"Approaching"},"cowork-opus":{bg:"#fdf4ff",text:"#7e22ce",label:"Cowork→Opus"},"opus-heavy":{bg:"#fef3c7",text:"#92400e",label:"Opus Heavy"},"legacy":{bg:"#f0fdf4",text:"#166534",label:"Legacy"},"low-engagement":{bg:"#f0f9ff",text:"#0369a1",label:"Low Usage"}};
-  const c = colors[flag]||{bg:C.accentLight,text:C.accent,label:flag};
-  return <span style={{background:c.bg,color:c.text,fontSize:10,fontWeight:700,padding:"2px 7px",borderRadius:99,letterSpacing:"0.04em",textTransform:"uppercase",whiteSpace:"nowrap"}}>{c.label}</span>;
-}
-function ModelBar({modelMix}) {
-  if (!modelMix) return null;
-  const total = Object.values(modelMix).reduce((s,v)=>s+v.spend,0)||1;
-  return <div style={{display:"flex",height:6,borderRadius:3,overflow:"hidden",width:80,gap:1}}>{Object.entries(modelMix).sort((a,b)=>b[1].spend-a[1].spend).map(([m,v])=><div key={m} style={{width:`${v.spend/total*100}%`,background:modelColor(m),minWidth:v.spend>0?1:0}} title={formatModel(m)+": "+fmt(v.spend)}/>)}</div>;
-}
-function ExpandedUserRow({user}) {
-  const products = Object.entries(user.productMix||{}).sort((a,b)=>b[1].spend-a[1].spend);
-  const models = Object.entries(user.modelMix||{}).sort((a,b)=>b[1].spend-a[1].spend);
-  const matrix = user.productModelMatrix||{};
-  const allModels = [...new Set(Object.values(matrix).flatMap(m=>Object.keys(m)))].sort();
-  const allProducts = Object.keys(matrix).sort((a,b)=>{const sa=Object.values(matrix[a]).reduce((s,v)=>s+v.spend,0);const sb=Object.values(matrix[b]).reduce((s,v)=>s+v.spend,0);return sb-sa;});
-  return <div style={{padding:"16px 24px 20px",background:"#f9fafb",borderTop:`1px solid ${C.border}`,display:"grid",gridTemplateColumns:"1fr 1fr 2fr",gap:20}}>
-    <div><div style={{fontSize:11,fontWeight:700,textTransform:"uppercase",letterSpacing:"0.08em",color:C.textDim,marginBottom:8}}>Product Mix</div>{products.map(([p,v])=><div key={p} style={{display:"flex",justifyContent:"space-between",fontSize:12,marginBottom:4}}><span style={{color:C.textMuted}}>{p}</span><span style={{fontWeight:600}}>{fmt(v.spend)}</span></div>)}</div>
-    <div><div style={{fontSize:11,fontWeight:700,textTransform:"uppercase",letterSpacing:"0.08em",color:C.textDim,marginBottom:8}}>Model Mix</div>{models.map(([m,v])=><div key={m} style={{display:"flex",justifyContent:"space-between",fontSize:12,marginBottom:4}}><span style={{color:modelColor(m)}}>{formatModel(m)}</span><span style={{fontWeight:600,color:C.text}}>{fmt(v.spend)}</span></div>)}</div>
-    <div><div style={{fontSize:11,fontWeight:700,textTransform:"uppercase",letterSpacing:"0.08em",color:C.textDim,marginBottom:8}}>Product × Model</div>
-    <table style={{fontSize:11,borderCollapse:"collapse",width:"100%"}}>
-      <thead><tr><th style={{textAlign:"left",padding:"2px 8px 2px 0",color:C.textDim,fontWeight:600}}>Product</th>{allModels.map(m=><th key={m} style={{textAlign:"right",padding:"2px 4px",color:modelColor(m),fontWeight:600}}>{formatModel(m)}</th>)}<th style={{textAlign:"right",padding:"2px 0 2px 4px",color:C.textDim,fontWeight:600}}>Total</th></tr></thead>
-      <tbody>{allProducts.map((p,i)=>{const rowTotal=allModels.reduce((s,m)=>s+(matrix[p]?.[m]?.spend||0),0);return <tr key={p} style={{background:i%2===0?"transparent":"#f0f0f5"}}><td style={{padding:"2px 8px 2px 0",color:C.textMuted}}>{p}</td>{allModels.map(m=><td key={m} style={{textAlign:"right",padding:"2px 4px",color:matrix[p]?.[m]?.spend>0?C.text:C.textDim}}>{matrix[p]?.[m]?.spend>0?fmt(matrix[p][m].spend):"—"}</td>)}<td style={{textAlign:"right",padding:"2px 0 2px 4px",fontWeight:700,color:C.text}}>{fmt(rowTotal)}</td></tr>;})}
-      <tr style={{borderTop:`1px solid ${C.border}`}}><td style={{padding:"4px 8px 2px 0",fontWeight:700,color:C.text}}>Total</td>{allModels.map(m=>{const mTotal=allProducts.reduce((s,p)=>s+(matrix[p]?.[m]?.spend||0),0);return <td key={m} style={{textAlign:"right",padding:"4px 4px 2px",fontWeight:700,color:modelColor(m)}}>{fmt(mTotal)}</td>;})}<td style={{textAlign:"right",padding:"4px 0 2px 4px",fontWeight:700,color:C.text}}>{fmt(Object.values(user.modelMix||{}).reduce((s,v)=>s+v.spend,0))}</td></tr>
-      </tbody>
-    </table></div>
-  </div>;
-}
-
-function StatCard({label,value,sub,accent}) {
-  return <div style={{background:C.card,border:`1px solid ${C.border}`,borderRadius:10,padding:"16px 20px",flex:1,minWidth:140}}><div style={{fontSize:11,fontWeight:700,textTransform:"uppercase",letterSpacing:"0.08em",color:C.textDim,marginBottom:6}}>{label}</div><div style={{fontSize:24,fontWeight:800,letterSpacing:"-0.03em",color:accent||C.text}}>{value}</div>{sub&&<div style={{fontSize:12,color:C.textMuted,marginTop:2}}>{sub}</div>}</div>;
-}
-
-function App() {
-  const [DATA, setDATA] = useState(null);
-  const [activeTab, setActiveTab] = useState("overview");
-  const [expanded, setExpanded] = useState(null);
-  const [auExpanded, setAuExpanded] = useState(null);
-  const [search, setSearch] = useState("");
-  const [sort, setSort] = useState("spend");
-  const [flagSection, setFlagSection] = useState("max");
-
-  useEffect(()=>{fetch("./data.json").then(r=>r.json()).then(setDATA).catch(()=>setDATA(null));},[]);
-
-  if (!DATA) return <div style={{display:"flex",alignItems:"center",justifyContent:"center",minHeight:"100vh",fontSize:14,color:C.textMuted}}>Loading...</div>;
-
-  const s = DATA.summary;
-  const TABS = [{id:"overview",label:"Overview"},{id:"leaderboard",label:"Leaderboard"},{id:"allusers",label:"All Users"},{id:"flags",label:"Flags & Alerts"},{id:"breakdowns",label:"Breakdowns"}];
-
-  const filtered = useMemo ? useMemo(()=>{let u=(DATA.allUsers||[]).filter(u=>!search||u.name.toLowerCase().includes(search.toLowerCase())||u.email.toLowerCase().includes(search.toLowerCase()));u.sort((a,b)=>sort==="spend"?b.spend-a.spend:sort==="requests"?b.requests-a.requests:b.cpr-a.cpr);return u;},[search,sort,DATA]) : (DATA.allUsers||[]);
-
-  return <div style={{background:C.bg,color:C.text,minHeight:"100vh"}}>
-    <div style={{padding:"20px 24px 0",borderBottom:`1px solid ${C.border}`,background:C.card}}>
-      <div style={{display:"flex",alignItems:"baseline",gap:12,marginBottom:4,flexWrap:"wrap"}}>
-        <h1 style={{fontSize:20,fontWeight:800,margin:0,letterSpacing:"-0.03em"}}>Claude Usage Analysis</h1>
-        <span style={{fontSize:12,color:C.textMuted,fontFamily:"monospace"}}>{s.monthOf}</span>
-        <span style={{fontSize:11,color:C.textDim,marginLeft:"auto",fontFamily:"monospace"}}>Monthly Report</span>
-      </div>
-      <div style={{display:"flex",gap:0,marginTop:12,flexWrap:"wrap"}}>
-        {TABS.map(t=><button key={t.id} onClick={()=>setActiveTab(t.id)} style={{background:"none",border:"none",color:activeTab===t.id?C.accent:C.textDim,fontSize:13,fontWeight:600,padding:"8px 16px",cursor:"pointer",borderBottom:activeTab===t.id?`2px solid ${C.accent}`:"2px solid transparent",marginBottom:-1}}>{t.label}</button>)}
-      </div>
-    </div>
-
-    {activeTab==="overview"&&<div style={{padding:24}}>
-      <div style={{display:"flex",gap:12,flexWrap:"wrap",marginBottom:24}}>
-        <StatCard label="Total Spend" value={fmt(s.totalSpend)} sub={s.activeUsers+" active users"} accent={C.accent}/>
-        <StatCard label="Avg / User" value={fmt(s.avgSpend)} sub="per month"/>
-        <StatCard label="Total Requests" value={s.totalRequests.toLocaleString()} sub={(s.totalPromptTokens/1e9).toFixed(1)+"B prompt tokens"}/>
-        <StatCard label="Top 10 Users" value={fmt(s.top10Spend)} sub={s.top10Pct+"% of total"}/>
-      </div>
-      <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:16,marginBottom:16}}>
-        <div style={{background:C.card,border:`1px solid ${C.border}`,borderRadius:10,padding:20}}>
-          <div style={{fontSize:13,fontWeight:700,marginBottom:16}}>Model Mix</div>
-          <div style={{display:"flex",height:12,borderRadius:6,overflow:"hidden",marginBottom:16,gap:2}}>
-            <div style={{width:s.sonnetPct+"%",background:C.accent}} title={"Sonnet "+s.sonnetPct+"%"}/>
-            <div style={{width:s.opusPct+"%",background:C.red}} title={"Opus "+s.opusPct+"%"}/>
-            <div style={{width:s.haikuPct+"%",background:C.green}} title={"Haiku "+s.haikuPct+"%"}/>
-          </div>
-          {[{name:"Sonnet",spend:s.sonnetSpend,pct:s.sonnetPct,color:C.accent},{name:"Opus",spend:s.opusSpend,pct:s.opusPct,color:C.red},{name:"Haiku",spend:s.haikuSpend,pct:s.haikuPct,color:C.green}].map(f=><div key={f.name} style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:8}}><div style={{display:"flex",alignItems:"center",gap:8}}><div style={{width:10,height:10,borderRadius:"50%",background:f.color}}/><span style={{fontSize:13,color:C.textMuted}}>{f.name}</span></div><div style={{textAlign:"right"}}><span style={{fontSize:13,fontWeight:700}}>{fmt(f.spend)}</span><span style={{fontSize:11,color:C.textDim,marginLeft:6}}>{f.pct}%</span></div></div>)}
-        </div>
-        <div style={{background:C.card,border:`1px solid ${C.border}`,borderRadius:10,padding:20}}>
-          <div style={{fontSize:13,fontWeight:700,marginBottom:16}}>Product Mix</div>
-          {(DATA.products||[]).filter(p=>p.spend>0).map((p,i)=><div key={p.name} style={{marginBottom:10}}><div style={{display:"flex",justifyContent:"space-between",marginBottom:3}}><span style={{fontSize:12,color:C.textMuted}}>{p.name}</span><span style={{fontSize:12,fontWeight:700}}>{fmt(p.spend)} <span style={{color:C.textDim,fontWeight:400}}>({p.pct}%)</span></span></div><div style={{height:4,background:C.border,borderRadius:2,overflow:"hidden"}}><div style={{width:p.pct+"%",height:"100%",background:[C.accent,C.accentMuted,C.blue,C.green,C.amber,C.orange][i%6]}}/></div></div>)}
-        </div>
-      </div>
-      <div style={{background:C.card,border:`1px solid ${C.border}`,borderRadius:10,padding:20}}>
-        <div style={{fontSize:13,fontWeight:700,marginBottom:14}}>Flag Summary</div>
-        <div style={{display:"flex",gap:12,flexWrap:"wrap"}}>
-          {[{label:"Max Plan Confirmed",count:(DATA.maxPlan||[]).length,color:C.red,desc:"≥$800/mo"},{label:"Max Plan Approaching",count:(DATA.maxApproaching||[]).length,color:C.orange,desc:"$400–$799"},{label:"Cowork→Opus",count:(DATA.coworkOpus||[]).length,color:"#7e22ce",desc:"auto-routed"},{label:"Opus-Heavy Chat",count:(DATA.opusHeavy||[]).length,color:C.amber,desc:"≥30% Opus Chat"},{label:"Legacy Models",count:(DATA.legacyModels||[]).length,color:C.green,desc:"deprecated versions"},{label:"Low Engagement",count:(DATA.lowEngagement||[]).length,color:C.blue,desc:"<$10/mo"}].map(f=><div key={f.label} style={{background:C.bg,border:`1px solid ${C.border}`,borderRadius:8,padding:"12px 16px",minWidth:120,flex:1}}><div style={{fontSize:22,fontWeight:800,color:f.color,letterSpacing:"-0.03em"}}>{f.count}</div><div style={{fontSize:12,fontWeight:600,marginTop:2}}>{f.label}</div><div style={{fontSize:11,color:C.textDim}}>{f.desc}</div></div>)}
-        </div>
-      </div>
-    </div>}
-
-    {activeTab==="leaderboard"&&<div style={{padding:24}}>
-      <div style={{background:C.card,border:`1px solid ${C.border}`,borderRadius:10,overflow:"hidden"}}>
-        <div style={{display:"grid",gridTemplateColumns:"28px 1fr 100px 80px 80px 80px 80px 120px",gap:8,padding:"10px 16px",background:C.bg,borderBottom:`1px solid ${C.border}`,fontSize:11,fontWeight:700,textTransform:"uppercase",letterSpacing:"0.06em",color:C.textDim}}>
-          <span>#</span><span>User</span><span style={{textAlign:"right"}}>Spend</span><span style={{textAlign:"right"}}>Reqs</span><span style={{textAlign:"right"}}>$/Req</span><span style={{textAlign:"right"}}>Opus%</span><span>Model Mix</span><span>Flags</span>
-        </div>
-        {(DATA.leaderboard||[]).map((u,i)=><div key={u.email}>
-          <div onClick={()=>setExpanded(expanded===u.email?null:u.email)} style={{display:"grid",gridTemplateColumns:"28px 1fr 100px 80px 80px 80px 80px 120px",gap:8,padding:"12px 16px",borderBottom:`1px solid ${C.border}`,cursor:"pointer",background:expanded===u.email?C.accentLight:i%2===0?C.card:"#f9fafb",alignItems:"center"}}>
-            <span style={{fontSize:12,color:C.textDim,fontWeight:600}}>{i+1}</span>
-            <div><div style={{fontSize:13,fontWeight:600}}>{u.name}</div><div style={{fontSize:11,color:C.textDim}}>{u.email}</div></div>
-            <span style={{textAlign:"right",fontSize:13,fontWeight:700}}>{fmt(u.spend)}</span>
-            <span style={{textAlign:"right",fontSize:12,color:C.textMuted}}>{u.requests.toLocaleString()}</span>
-            <span style={{textAlign:"right",fontSize:12,color:C.textMuted}}>${u.cpr.toFixed(3)}</span>
-            <span style={{textAlign:"right",fontSize:12,color:u.opusPct>30?C.red:C.textMuted}}>{u.opusPct}%</span>
-            <ModelBar modelMix={u.modelMix}/>
-            <div style={{display:"flex",gap:3,flexWrap:"wrap"}}>{u.flags.map(f=><FlagPill key={f} flag={f}/>)}</div>
-          </div>
-          {expanded===u.email&&<ExpandedUserRow user={u}/>}
-        </div>)}
-      </div>
-    </div>}
-
-    {activeTab==="allusers"&&<div style={{padding:24}}>
-      <div style={{display:"flex",gap:10,marginBottom:16,alignItems:"center"}}>
-        <input value={search} onChange={e=>setSearch(e.target.value)} placeholder="Search users..." style={{padding:"8px 12px",borderRadius:6,border:`1px solid ${C.border}`,fontSize:13,width:240,outline:"none",background:C.card}}/>
-        <select value={sort} onChange={e=>setSort(e.target.value)} style={{padding:"8px 10px",borderRadius:6,border:`1px solid ${C.border}`,fontSize:13,background:C.card}}>
-          <option value="spend">Sort: Spend</option><option value="requests">Sort: Requests</option><option value="cpr">Sort: $/Req</option>
-        </select>
-        <span style={{fontSize:12,color:C.textDim}}>{filtered.length} users</span>
-      </div>
-      <div style={{background:C.card,border:`1px solid ${C.border}`,borderRadius:10,overflow:"hidden"}}>
-        <div style={{display:"grid",gridTemplateColumns:"1fr 100px 70px 70px 80px 80px 110px",gap:8,padding:"10px 16px",background:C.bg,borderBottom:`1px solid ${C.border}`,fontSize:11,fontWeight:700,textTransform:"uppercase",letterSpacing:"0.06em",color:C.textDim}}>
-          <span>User</span><span style={{textAlign:"right"}}>Spend</span><span style={{textAlign:"right"}}>Reqs</span><span style={{textAlign:"right"}}>$/Req</span><span>Model Mix</span><span>Top Product</span><span>Flags</span>
-        </div>
-        {filtered.map((u,i)=><div key={u.email}>
-          <div onClick={()=>setAuExpanded(auExpanded===u.email?null:u.email)} style={{display:"grid",gridTemplateColumns:"1fr 100px 70px 70px 80px 80px 110px",gap:8,padding:"10px 16px",borderBottom:`1px solid ${C.border}`,cursor:"pointer",background:auExpanded===u.email?C.accentLight:i%2===0?C.card:"#f9fafb",alignItems:"center"}}>
-            <div><div style={{fontSize:12,fontWeight:600}}>{u.name}</div><div style={{fontSize:11,color:C.textDim}}>{u.email}</div></div>
-            <span style={{textAlign:"right",fontSize:12,fontWeight:700}}>{fmt(u.spend)}</span>
-            <span style={{textAlign:"right",fontSize:11,color:C.textMuted}}>{u.requests.toLocaleString()}</span>
-            <span style={{textAlign:"right",fontSize:11,color:C.textMuted}}>${u.cpr.toFixed(3)}</span>
-            <ModelBar modelMix={u.modelMix}/>
-            <span style={{fontSize:11,color:C.textMuted,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{u.topProduct}</span>
-            <div style={{display:"flex",gap:2,flexWrap:"wrap"}}>{u.flags.map(f=><FlagPill key={f} flag={f}/>)}</div>
-          </div>
-          {auExpanded===u.email&&<ExpandedUserRow user={u}/>}
-        </div>)}
-      </div>
-    </div>}
-
-    {activeTab==="flags"&&<div style={{padding:24}}>
-      <div style={{display:"flex",gap:6,marginBottom:20,flexWrap:"wrap"}}>
-        {[{id:"max",label:"Max Plan ("+(( DATA.maxPlan||[]).length+(DATA.maxApproaching||[]).length)+")"},{id:"cowork",label:"Cowork→Opus ("+((DATA.coworkOpus||[]).length)+")"},{id:"opus",label:"Opus Heavy ("+((DATA.opusHeavy||[]).length)+")"},{id:"legacy",label:"Legacy ("+((DATA.legacyModels||[]).length)+")"},{id:"loweng",label:"Low Engagement ("+((DATA.lowEngagement||[]).length)+")"}].map(s=><button key={s.id} onClick={()=>setFlagSection(s.id)} style={{padding:"6px 14px",borderRadius:99,border:`1px solid ${flagSection===s.id?C.accent:C.border}`,background:flagSection===s.id?C.accentLight:C.card,color:flagSection===s.id?C.accent:C.textMuted,fontSize:12,fontWeight:600,cursor:"pointer"}}>{s.label}</button>)}
-      </div>
-      {flagSection==="max"&&<div>
-        {(DATA.maxPlan||[]).length>0&&<div style={{background:"#fef2f2",border:"1px solid #fca5a5",borderRadius:10,padding:16,marginBottom:16}}><div style={{fontSize:13,fontWeight:700,color:"#dc2626",marginBottom:10}}>Confirmed Max Plan (≥$800/mo)</div>{(DATA.maxPlan||[]).map(u=><div key={u.email} style={{display:"flex",justifyContent:"space-between",padding:"6px 0",borderBottom:"1px solid #fca5a5",fontSize:13}}><div><span style={{fontWeight:600}}>{u.name}</span> <span style={{color:C.textDim,fontSize:11}}>{u.email}</span></div><span style={{fontWeight:700,color:"#dc2626"}}>{fmt(u.spend)}</span></div>)}</div>}
-        <div style={{background:"#fff7ed",border:"1px solid #fdba74",borderRadius:10,padding:16}}><div style={{fontSize:13,fontWeight:700,color:"#c2410c",marginBottom:10}}>Approaching Max Plan ($400–$799) — {(DATA.maxApproaching||[]).length} users</div>{(DATA.maxApproaching||[]).map(u=><div key={u.email} style={{display:"flex",justifyContent:"space-between",padding:"6px 0",borderBottom:"1px solid #fdba74",fontSize:13}}><div><span style={{fontWeight:600}}>{u.name}</span> <span style={{color:C.textDim,fontSize:11}}>{u.email}</span></div><span style={{fontWeight:700,color:"#c2410c"}}>{fmt(u.spend)}</span></div>)}</div>
-      </div>}
-      {flagSection==="cowork"&&<div style={{background:C.card,border:`1px solid ${C.border}`,borderRadius:10,overflow:"hidden"}}>
-        <div style={{padding:"10px 16px",background:C.bg,borderBottom:`1px solid ${C.border}`,fontSize:11,fontWeight:700,textTransform:"uppercase",color:C.textDim}}>{(DATA.coworkOpus||[]).length} users routing Cowork to Opus</div>
-        {(DATA.coworkOpus||[]).map((u,i)=><div key={u.email} style={{display:"grid",gridTemplateColumns:"1fr 100px 80px 80px 100px",gap:8,padding:"10px 16px",borderBottom:`1px solid ${C.border}`,background:i%2===0?C.card:"#f9fafb",alignItems:"center"}}><div><div style={{fontSize:13,fontWeight:600}}>{u.name}</div><div style={{fontSize:11,color:C.textDim}}>{u.email}</div></div><span style={{textAlign:"right",fontWeight:700,fontSize:13}}>{fmt(u.spend)}</span><span style={{textAlign:"right",fontSize:12,color:C.textMuted}}>{u.requests.toLocaleString()} reqs</span><span style={{textAlign:"right",fontSize:12,color:C.textMuted}}>{fmt(u.totalSpend)} total</span><span style={{textAlign:"right",fontSize:11,color:"#7e22ce",fontWeight:600}}>{formatModel(u.model)}</span></div>)}
-      </div>}
-      {flagSection==="opus"&&<div style={{background:C.card,border:`1px solid ${C.border}`,borderRadius:10,overflow:"hidden"}}>
-        <div style={{padding:"10px 16px",background:C.bg,borderBottom:`1px solid ${C.border}`,fontSize:11,fontWeight:700,textTransform:"uppercase",color:C.textDim}}>{(DATA.opusHeavy||[]).length} users with ≥30% Chat spend on Opus</div>
-        {(DATA.opusHeavy||[]).map((u,i)=><div key={u.email} style={{display:"grid",gridTemplateColumns:"1fr 80px 100px 100px 100px",gap:8,padding:"10px 16px",borderBottom:`1px solid ${C.border}`,background:i%2===0?C.card:"#f9fafb",alignItems:"center"}}><div><div style={{fontSize:13,fontWeight:600}}>{u.name}</div><div style={{fontSize:11,color:C.textDim}}>{u.email}</div></div><span style={{textAlign:"right",fontSize:13,fontWeight:700,color:C.red}}>{u.opusPct}%</span><span style={{textAlign:"right",fontSize:12,color:C.red}}>Opus {fmt(u.opusSpend)}</span><span style={{textAlign:"right",fontSize:12,color:C.textMuted}}>Chat {fmt(u.chatSpend)}</span><span style={{textAlign:"right",fontSize:12,color:C.textDim}}>Total {fmt(u.totalSpend)}</span></div>)}
-      </div>}
-      {flagSection==="legacy"&&<div style={{background:C.card,border:`1px solid ${C.border}`,borderRadius:10,overflow:"hidden"}}>
-        <div style={{padding:"10px 16px",background:C.bg,borderBottom:`1px solid ${C.border}`,fontSize:11,fontWeight:700,textTransform:"uppercase",color:C.textDim}}>{(DATA.legacyModels||[]).length} users on deprecated model versions</div>
-        {(DATA.legacyModels||[]).map((u,i)=><div key={u.email} style={{display:"grid",gridTemplateColumns:"1fr 100px 100px 1fr",gap:8,padding:"10px 16px",borderBottom:`1px solid ${C.border}`,background:i%2===0?C.card:"#f9fafb",alignItems:"center"}}><div><div style={{fontSize:13,fontWeight:600}}>{u.name}</div><div style={{fontSize:11,color:C.textDim}}>{u.email}</div></div><span style={{textAlign:"right",fontSize:12,fontWeight:600}}>{fmt(u.legacySpend)}</span><span style={{textAlign:"right",fontSize:12,color:C.textDim}}>Total {fmt(u.totalSpend)}</span><div style={{display:"flex",gap:4,flexWrap:"wrap"}}>{u.models.map(m=><span key={m} style={{fontSize:10,background:"#dcfce7",color:"#166534",padding:"2px 6px",borderRadius:99,fontWeight:600}}>{formatModel(m)}</span>)}</div></div>)}
-      </div>}
-      {flagSection==="loweng"&&<div>
-        <div style={{background:"#f0f9ff",border:"1px solid #7dd3fc",borderRadius:10,padding:"10px 16px",marginBottom:12,fontSize:12,color:"#0369a1"}}>Low engagement tracks seat utilization, not cost. {(DATA.lowEngagement||[]).length} users with &lt;$10 spend this month.</div>
-        <div style={{background:C.card,border:`1px solid ${C.border}`,borderRadius:10,overflow:"hidden"}}>{(DATA.lowEngagement||[]).map((u,i)=><div key={u.email} style={{display:"grid",gridTemplateColumns:"1fr 100px 80px",gap:8,padding:"10px 16px",borderBottom:`1px solid ${C.border}`,background:i%2===0?C.card:"#f9fafb",alignItems:"center"}}><div><div style={{fontSize:13,fontWeight:600}}>{u.name}</div><div style={{fontSize:11,color:C.textDim}}>{u.email}</div></div><span style={{textAlign:"right",fontSize:12}}>{fmt(u.spend)}</span><span style={{textAlign:"right",fontSize:12,color:C.textDim}}>{u.requests} reqs</span></div>)}</div>
-      </div>}
-    </div>}
-
-    {activeTab==="breakdowns"&&<div style={{padding:24}}>
-      <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:16}}>
-        <div style={{background:C.card,border:`1px solid ${C.border}`,borderRadius:10,padding:20}}>
-          <div style={{fontSize:13,fontWeight:700,marginBottom:14}}>Model Versions</div>
-          {(DATA.models||[]).map((m,i)=><div key={m.name} style={{marginBottom:10}}><div style={{display:"flex",justifyContent:"space-between",marginBottom:3,alignItems:"center"}}><div style={{display:"flex",alignItems:"center",gap:6}}><span style={{fontSize:12,color:modelColor(m.name),fontWeight:600}}>{formatModel(m.name)}</span>{m.isLegacy&&<span style={{fontSize:9,background:"#dcfce7",color:"#166534",padding:"1px 5px",borderRadius:99,fontWeight:700,textTransform:"uppercase"}}>legacy</span>}</div><span style={{fontSize:12,fontWeight:700}}>{fmt(m.spend)} <span style={{color:C.textDim,fontWeight:400}}>({m.pct}%)</span></span></div><div style={{height:4,background:C.border,borderRadius:2,overflow:"hidden"}}><div style={{width:m.pct+"%",height:"100%",background:modelColor(m.name)}}/></div><div style={{fontSize:10,color:C.textDim,marginTop:2}}>{m.requests.toLocaleString()} reqs</div></div>)}
-        </div>
-        <div style={{background:C.card,border:`1px solid ${C.border}`,borderRadius:10,padding:20}}>
-          <div style={{fontSize:13,fontWeight:700,marginBottom:14}}>Power Users (Efficient)</div>
-          <div style={{fontSize:11,color:C.textDim,marginBottom:12}}>≥85% Sonnet/Haiku | ≥$100 | ≥100 reqs</div>
-          {(DATA.powerUsers||[]).slice(0,12).map((u,i)=><div key={u.email} style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"6px 0",borderBottom:`1px solid ${C.border}`,fontSize:12}}><div><span style={{fontWeight:600}}>{u.name}</span><span style={{fontSize:10,color:C.textDim,marginLeft:6}}>{u.requests.toLocaleString()} reqs</span></div><div style={{textAlign:"right"}}><div style={{fontWeight:700}}>${u.cpr.toFixed(3)}/req</div><div style={{fontSize:10,color:C.green}}>{u.efficientPct}% efficient</div></div></div>)}
-        </div>
-      </div>
-    </div>}
-  </div>;
-}
-
-ReactDOM.createRoot(document.getElementById("root")).render(<App />);
+ReactDOM.createRoot(document.getElementById("root")).render(React.createElement(App));
 </script>
 </body>
 </html>
