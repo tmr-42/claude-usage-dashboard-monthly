@@ -1,454 +1,1631 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Claude Usage — May 2026 (Monthly)</title>
-<script src="https://unpkg.com/react@18/umd/react.production.min.js" crossorigin></script>
-<script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js" crossorigin></script>
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-<style>*{box-sizing:border-box;margin:0;padding:0}body{font-family:'Inter',-apple-system,sans-serif;background:#f7f7fb;color:#18181b}button,input,select{font-family:inherit}</style>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Claude Usage — June 2026 (Monthly) · Level Agency</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+<script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+<script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+<style>
+  html,body{margin:0;padding:0;background:#f7f7fb}
+  *{box-sizing:border-box}
+  #root{min-height:100vh}
+  .boot{min-height:100vh;display:flex;align-items:center;justify-content:center;font-family:'Inter',sans-serif;color:#5b5b76;font-size:14px}
+</style>
 </head>
 <body>
-<div id="root"><div style="display:flex;align-items:center;justify-content:center;min-height:100vh;font-size:14px;color:#9ca3af">Loading…</div></div>
-<script>
-
-const{useState,useMemo,useEffect}=React;
-const C={bg:"#f7f7fb",card:"#fff",border:"#e2e4ed",accent:"#4f46e5",accentLight:"#ede9fe",accentMuted:"#818cf8",text:"#18181b",textMuted:"#6b7280",textDim:"#9ca3af",green:"#10b981",amber:"#f59e0b",red:"#ef4444",orange:"#f97316",blue:"#3b82f6"};
-const fmt=v=>"$"+Number(v).toLocaleString("en-US",{minimumFractionDigits:2,maximumFractionDigits:2});
-
-function fmtM(m){if(!m)return"";const s=m.toLowerCase();if(s.includes("opus-4-8"))return"Opus 4.8";if(s.includes("opus-4-7"))return"Opus 4.7";if(s.includes("opus-4-6"))return"Opus 4.6";if(s.includes("opus-4-5"))return"Opus 4.5";if(s.includes("3-opus")||s.includes("opus-3"))return"Claude 3 Opus";if(s.includes("sonnet-4-6"))return"Sonnet 4.6";if(s.includes("sonnet-4-5"))return"Sonnet 4.5";if(s.includes("sonnet-4-2")||s.includes("sonnet-4-20"))return"Sonnet 4 (legacy)";if(s.includes("haiku-4-5"))return"Haiku 4.5";return m;}
-function mColor(m){if(!m)return C.textDim;const s=m.toLowerCase();if(s.includes("opus"))return C.red;if(s.includes("sonnet"))return C.accent;if(s.includes("haiku"))return C.green;return C.textDim;}
-
-function DeltaBadge({val,suffix,invert}){
-  suffix=suffix||"%";invert=invert||false;
-  if(val===null||val===undefined)return null;
-  const isGood=invert?val<0:val>0;
-  const isNeutral=val===0;
-  const color=isNeutral?C.textDim:isGood?C.green:C.red;
-  const bg=isNeutral?"#f3f4f6":isGood?"#f0fdf4":"#fef2f2";
-  const sign=val>0?"+":"";
-  return React.createElement("span",{style:{background:bg,color,fontSize:11,fontWeight:700,padding:"2px 7px",borderRadius:99,whiteSpace:"nowrap"}},sign+val+suffix);
-}
-
-function FlagPill({flag}){
-  const cols={"max-plan":{bg:"#fef2f2",tx:"#dc2626",lb:"Max Plan"},"approaching":{bg:"#fff7ed",tx:"#c2410c",lb:"Approaching"},"cowork-opus":{bg:"#fdf4ff",tx:"#7e22ce",lb:"Cowork\u2192Opus"},"opus-heavy":{bg:"#fef3c7",tx:"#92400e",lb:"Opus Heavy"},"legacy":{bg:"#f0fdf4",tx:"#166534",lb:"Legacy"},"low-engagement":{bg:"#f0f9ff",tx:"#0369a1",lb:"Low Usage"}};
-  const c=cols[flag]||{bg:C.accentLight,tx:C.accent,lb:flag};
-  return React.createElement("span",{style:{background:c.bg,color:c.tx,fontSize:10,fontWeight:700,padding:"2px 7px",borderRadius:99,letterSpacing:"0.04em",textTransform:"uppercase",whiteSpace:"nowrap",margin:"1px 2px"}},c.lb);
-}
-
-function MBar({modelMix}){
-  if(!modelMix)return null;
-  const tot=Object.values(modelMix).reduce((s,v)=>s+v.spend,0)||1;
-  return React.createElement("div",{style:{display:"flex",height:6,borderRadius:3,overflow:"hidden",width:80,gap:1}},
-    Object.entries(modelMix).sort((a,b)=>b[1].spend-a[1].spend).map(([m,v])=>
-      React.createElement("div",{key:m,style:{width:`${v.spend/tot*100}%`,background:mColor(m),minWidth:v.spend>0?1:0},title:fmtM(m)+": "+fmt(v.spend)})));
-}
-
-function SparkLine({values,color,height,width}){
-  height=height||28;width=width||120;
-  if(!values||values.length<2)return null;
-  const max=Math.max(...values);
-  const min=Math.min(...values);
-  const range=max-min||1;
-  const pad=3;
-  const iH=height-pad*2;
-  const iW=width-pad*2;
-  const pts=values.map((v,i)=>pad+(i/(values.length-1))*iW+","+(pad+iH-((v-min)/range)*iH)).join(" ");
-  const lx=pad+iW;
-  const ly=pad+iH-((values[values.length-1]-min)/range)*iH;
-  return React.createElement("svg",{viewBox:"0 0 "+width+" "+height,style:{width,height}},
-    React.createElement("polyline",{points:pts,fill:"none",stroke:color,strokeWidth:"1.5",strokeLinejoin:"round"}),
-    React.createElement("circle",{cx:lx,cy:ly,r:"2",fill:color}));
-}
-
-function ExpandRow({user}){
-  const prods=Object.entries(user.productMix||{}).sort((a,b)=>b[1].spend-a[1].spend);
-  const models=Object.entries(user.modelMix||{}).sort((a,b)=>b[1].spend-a[1].spend);
-  const mx=user.productModelMatrix||{};
-  const allM=[...new Set(Object.values(mx).flatMap(m=>Object.keys(m)))].sort();
-  const allP=Object.keys(mx).sort((a,b)=>{
-    const sa=Object.values(mx[a]).reduce((s,v)=>s+v.spend,0);
-    const sb=Object.values(mx[b]).reduce((s,v)=>s+v.spend,0);
-    return sb-sa;
+<div id="root"><div class="boot">Loading June 2026 report…</div></div>
+<script type="text/plain" id="appsrc">
+var DATA = window.__APP_DATA__;
+var ACTIONS_ENABLED = false;
+const SKIP_DM = new Set(["matt.rose@level.agency", "dave.brong@level.agency", "bill.buchanan@level.agency", "patrick.patterson@level.agency"]);
+const C = {
+  bg: "#f7f7fb",
+  card: "#ffffff",
+  cardAlt: "#f9fafb",
+  border: "#e6e6ef",
+  text: "#1a1a2e",
+  textMuted: "#5b5b76",
+  textDim: "#9797ad",
+  accent: "#4f46e5",
+  accentSoft: "#eef0fd",
+  red: "#dc2626",
+  redSoft: "#fdecec",
+  orange: "#ea580c",
+  orangeSoft: "#fdefe6",
+  purple: "#9333ea",
+  purpleSoft: "#f5ecfd",
+  green: "#16a34a",
+  greenSoft: "#e9f7ee",
+  cyan: "#0891b2",
+  cyanSoft: "#e6f4f8"
+};
+const FLAG_META = {
+  "max-plan": {
+    label: "Max plan",
+    color: C.red,
+    soft: C.redSoft
+  },
+  "cowork-opus": {
+    label: "Cowork Opus",
+    color: C.orange,
+    soft: C.orangeSoft
+  },
+  "opus": {
+    label: "Opus heavy",
+    color: C.purple,
+    soft: C.purpleSoft
+  },
+  "legacy": {
+    label: "Legacy",
+    color: C.orange,
+    soft: C.orangeSoft
+  },
+  "low-engagement": {
+    label: "Low engagement",
+    color: C.cyan,
+    soft: C.cyanSoft
+  }
+};
+function fmt(n) {
+  return "$" + (n || 0).toLocaleString("en-US", {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2
   });
-  return React.createElement("div",{style:{padding:"16px 24px 20px",background:"#f9fafb",borderTop:"1px solid "+C.border,display:"grid",gridTemplateColumns:"1fr 1fr 2fr",gap:20}},
-    React.createElement("div",null,
-      React.createElement("div",{style:{fontSize:11,fontWeight:700,textTransform:"uppercase",color:C.textDim,marginBottom:8}},"Product Mix"),
-      prods.map(([p,v])=>React.createElement("div",{key:p,style:{display:"flex",justifyContent:"space-between",fontSize:12,marginBottom:4}},
-        React.createElement("span",{style:{color:C.textMuted}},p),
-        React.createElement("span",{style:{fontWeight:600}},fmt(v.spend))))),
-    React.createElement("div",null,
-      React.createElement("div",{style:{fontSize:11,fontWeight:700,textTransform:"uppercase",color:C.textDim,marginBottom:8}},"Model Mix"),
-      models.map(([m,v])=>React.createElement("div",{key:m,style:{display:"flex",justifyContent:"space-between",fontSize:12,marginBottom:4}},
-        React.createElement("span",{style:{color:mColor(m)}},fmtM(m)),
-        React.createElement("span",{style:{fontWeight:600,color:C.text}},fmt(v.spend))))),
-    React.createElement("div",null,
-      React.createElement("div",{style:{fontSize:11,fontWeight:700,textTransform:"uppercase",color:C.textDim,marginBottom:8}},"Product \u00d7 Model"),
-      React.createElement("table",{style:{fontSize:11,borderCollapse:"collapse",width:"100%"}},
-        React.createElement("thead",null,
-          React.createElement("tr",null,
-            React.createElement("th",{style:{textAlign:"left",padding:"2px 8px 2px 0",color:C.textDim,fontWeight:600}},"Product"),
-            allM.map(m=>React.createElement("th",{key:m,style:{textAlign:"right",padding:"2px 4px",color:mColor(m),fontWeight:600}},fmtM(m))),
-            React.createElement("th",{style:{textAlign:"right",padding:"2px 0 2px 4px",color:C.textDim,fontWeight:600}},"Total"))),
-        React.createElement("tbody",null,
-          allP.map((p,i)=>{
-            const rT=allM.reduce((s,m)=>s+(mx[p]&&mx[p][m]?mx[p][m].spend:0),0);
-            return React.createElement("tr",{key:p,style:{background:i%2===0?"transparent":"#f0f0f5"}},
-              React.createElement("td",{style:{padding:"2px 8px 2px 0",color:C.textMuted}},p),
-              allM.map(m=>React.createElement("td",{key:m,style:{textAlign:"right",padding:"2px 4px",color:mx[p]&&mx[p][m]&&mx[p][m].spend>0?C.text:C.textDim}},mx[p]&&mx[p][m]&&mx[p][m].spend>0?fmt(mx[p][m].spend):"—")),
-              React.createElement("td",{style:{textAlign:"right",padding:"2px 0 2px 4px",fontWeight:700,color:C.text}},fmt(rT)));
-          }),
-          React.createElement("tr",{key:"tot",style:{borderTop:"1px solid "+C.border}},
-            React.createElement("td",{style:{padding:"4px 8px 2px 0",fontWeight:700}},"Total"),
-            allM.map(m=>{
-              const mT=allP.reduce((s,p)=>s+(mx[p]&&mx[p][m]?mx[p][m].spend:0),0);
-              return React.createElement("td",{key:m,style:{textAlign:"right",padding:"4px 4px 2px",fontWeight:700,color:mColor(m)}},fmt(mT));
-            }),
-            React.createElement("td",{style:{textAlign:"right",padding:"4px 0 2px 4px",fontWeight:700,color:C.text}},
-              fmt(Object.values(user.modelMix||{}).reduce((s,v)=>s+v.spend,0))))))));
 }
-
-function StatCard({label,value,sub,accent,delta,deltaInvert}){
-  return React.createElement("div",{style:{background:C.card,border:"1px solid "+C.border,borderRadius:10,padding:"16px 20px",flex:1,minWidth:140}},
-    React.createElement("div",{style:{fontSize:11,fontWeight:700,textTransform:"uppercase",letterSpacing:"0.08em",color:C.textDim,marginBottom:6}},label),
-    React.createElement("div",{style:{display:"flex",alignItems:"baseline",gap:8,flexWrap:"wrap"}},
-      React.createElement("div",{style:{fontSize:24,fontWeight:800,letterSpacing:"-0.03em",color:accent||C.text}},value),
-      delta!==undefined&&delta!==null&&React.createElement(DeltaBadge,{val:delta,suffix:"%",invert:deltaInvert||false})),
-    sub&&React.createElement("div",{style:{fontSize:12,color:C.textMuted,marginTop:2}},sub));
+function fmt0(n) {
+  return "$" + Math.round(n || 0).toLocaleString("en-US");
 }
-
-function App(){
-  const[DATA,setDATA]=useState(null);
-  const[tab,setTab]=useState("overview");
-  const[exp,setExp]=useState(null);
-  const[auExp,setAuExp]=useState(null);
-  const[search,setSearch]=useState("");
-  const[sort,setSort]=useState("spend");
-  const[flagSec,setFlagSec]=useState("max");
-
-  useEffect(()=>{
-    fetch("./data.json")
-      .then(r=>r.json())
-      .then(setDATA)
-      .catch(e=>setDATA({error:e.message}));
-  },[]);
-
-  if(!DATA)return React.createElement("div",{style:{display:"flex",alignItems:"center",justifyContent:"center",minHeight:"100vh",color:C.textMuted}},"Loading...");
-  if(DATA.error)return React.createElement("div",{style:{padding:40,color:C.red}},"Error loading data.json: "+DATA.error);
-
-  const s=DATA.summary;
-  const mom=DATA.trends&&DATA.trends.mom;
-  const months=(DATA.trends&&DATA.trends.months)||[];
-  const TABS=[{id:"overview",lb:"Overview"},{id:"leaderboard",lb:"Leaderboard"},{id:"allusers",lb:"All Users"},{id:"trends",lb:"Trends"},{id:"flags",lb:"Flags & Alerts"},{id:"breakdowns",lb:"Breakdowns"}];
-  // No useMemo here - hooks cannot be called after conditional returns
-  // filtered is computed inside AllUsersTab instead
-
-  function Header(){
-    return React.createElement("div",{style:{padding:"20px 24px 0",borderBottom:"1px solid "+C.border,background:C.card}},
-      React.createElement("div",{style:{display:"flex",alignItems:"baseline",gap:12,marginBottom:4,flexWrap:"wrap"}},
-        React.createElement("h1",{style:{fontSize:20,fontWeight:800,margin:0,letterSpacing:"-0.03em"}},"Claude Usage Analysis"),
-        React.createElement("span",{style:{fontSize:12,color:C.textMuted,fontFamily:"monospace"}},s.monthOf),
-        React.createElement("span",{style:{fontSize:11,background:C.accentLight,color:C.accent,padding:"2px 8px",borderRadius:99,fontWeight:700}},"Monthly"),
-        React.createElement("span",{style:{fontSize:11,color:C.textDim,marginLeft:"auto",fontFamily:"monospace"}},months.length+" months in history")),
-      React.createElement("div",{style:{display:"flex",gap:0,marginTop:12}},
-        TABS.map(t=>React.createElement("button",{key:t.id,onClick:()=>setTab(t.id),style:{background:"none",border:"none",color:tab===t.id?C.accent:C.textDim,fontSize:13,fontWeight:600,padding:"8px 16px",cursor:"pointer",borderBottom:tab===t.id?"2px solid "+C.accent:"2px solid transparent",marginBottom:-1}},t.lb))));
-  }
-
-  function OverviewTab(){
-    const modelFamilies=[
-      {name:"Sonnet",spend:s.sonnetSpend,pct:s.sonnetPct,color:C.accent,d:mom&&mom.sonnetPct&&mom.sonnetPct.delta},
-      {name:"Opus",spend:s.opusSpend,pct:s.opusPct,color:C.red,d:mom&&mom.opusPct&&mom.opusPct.delta,inv:true},
-      {name:"Haiku",spend:s.haikuSpend,pct:s.haikuPct,color:C.green}
-    ];
-    const flagDefs=[
-      {label:"Max Plan Confirmed",count:(DATA.maxPlan||[]).length,color:C.red,desc:"\u2265$800/mo",mk:"maxPlanConfirmed"},
-      {label:"Max Plan Approaching",count:(DATA.maxApproaching||[]).length,color:C.orange,desc:"$400\u2013$799",mk:"maxPlanApproaching"},
-      {label:"Cowork\u2192Opus",count:(DATA.coworkOpus||[]).length,color:"#7e22ce",desc:"auto-routed",mk:"coworkOpus"},
-      {label:"Opus-Heavy Chat",count:(DATA.opusHeavy||[]).length,color:C.amber,desc:"\u226530% Opus",mk:"opusHeavy"},
-      {label:"Legacy Models",count:(DATA.legacyModels||[]).length,color:C.green,desc:"deprecated",mk:"legacy"},
-      {label:"Low Engagement",count:(DATA.lowEngagement||[]).length,color:C.blue,desc:"<$10/mo",mk:"lowEngagement"}
-    ];
-    return React.createElement("div",{style:{padding:24}},
-      React.createElement("div",{style:{display:"flex",gap:12,flexWrap:"wrap",marginBottom:24}},
-        React.createElement(StatCard,{label:"Total Spend",value:fmt(s.totalSpend),sub:s.activeUsers+" active users",accent:C.accent,delta:mom&&mom.spend&&mom.spend.deltaPct}),
-        React.createElement(StatCard,{label:"Avg / User",value:fmt(s.avgSpend),sub:"per month",delta:mom&&mom.avgSpend&&mom.avgSpend.deltaPct}),
-        React.createElement(StatCard,{label:"Total Requests",value:s.totalRequests.toLocaleString(),sub:(s.totalPromptTokens/1e9).toFixed(1)+"B prompt tokens"}),
-        React.createElement(StatCard,{label:"Top 10 Users",value:fmt(s.top10Spend),sub:s.top10Pct+"% of total"})),
-      mom&&React.createElement("div",{style:{background:C.card,border:"1px solid "+C.border,borderRadius:10,padding:"14px 20px",marginBottom:16,display:"flex",gap:24,flexWrap:"wrap",alignItems:"center"}},
-        React.createElement("div",{style:{fontSize:12,fontWeight:700,color:C.textDim,textTransform:"uppercase",letterSpacing:"0.06em"}},"vs April 2026"),
-        [{label:"Spend",val:mom.spend.deltaPct},{label:"Users",val:mom.users.deltaPct},{label:"Avg/User",val:mom.avgSpend.deltaPct},{label:"Opus spend",val:mom.opusSpend.deltaPct,inv:true},{label:"Opus %",val:mom.opusPct.delta,sfx:"pp",inv:true},{label:"Sonnet %",val:mom.sonnetPct.delta,sfx:"pp"}]
-          .map(function(x){
-            return React.createElement("div",{key:x.label,style:{display:"flex",flexDirection:"column",gap:3}},
-              React.createElement("div",{style:{fontSize:11,color:C.textDim}},x.label),
-              React.createElement(DeltaBadge,{val:x.val,suffix:x.sfx||"%",invert:x.inv||false}));
-          })),
-      React.createElement("div",{style:{display:"grid",gridTemplateColumns:"1fr 1fr",gap:16,marginBottom:16}},
-        React.createElement("div",{style:{background:C.card,border:"1px solid "+C.border,borderRadius:10,padding:20}},
-          React.createElement("div",{style:{fontSize:13,fontWeight:700,marginBottom:16}},"Model Mix"),
-          React.createElement("div",{style:{display:"flex",height:12,borderRadius:6,overflow:"hidden",marginBottom:16,gap:2}},
-            React.createElement("div",{style:{width:s.sonnetPct+"%",background:C.accent}}),
-            React.createElement("div",{style:{width:s.opusPct+"%",background:C.red}}),
-            React.createElement("div",{style:{width:s.haikuPct+"%",background:C.green}})),
-          modelFamilies.map(function(f){
-            return React.createElement("div",{key:f.name,style:{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:8}},
-              React.createElement("div",{style:{display:"flex",alignItems:"center",gap:8}},
-                React.createElement("div",{style:{width:10,height:10,borderRadius:"50%",background:f.color}}),
-                React.createElement("span",{style:{fontSize:13,color:C.textMuted}},f.name)),
-              React.createElement("div",{style:{display:"flex",alignItems:"center",gap:8}},
-                React.createElement("span",{style:{fontSize:13,fontWeight:700}},fmt(f.spend)),
-                React.createElement("span",{style:{fontSize:11,color:C.textDim}},f.pct+"%"),
-                f.d!=null&&React.createElement(DeltaBadge,{val:f.d,suffix:"pp",invert:f.inv||false})));
-          })),
-        React.createElement("div",{style:{background:C.card,border:"1px solid "+C.border,borderRadius:10,padding:20}},
-          React.createElement("div",{style:{fontSize:13,fontWeight:700,marginBottom:16}},"Product Mix"),
-          (DATA.products||[]).filter(function(p){return p.spend>0;}).map(function(p,i){
-            var md=mom&&mom.products&&mom.products[p.name]&&mom.products[p.name].deltaPct;
-            return React.createElement("div",{key:p.name,style:{marginBottom:10}},
-              React.createElement("div",{style:{display:"flex",justifyContent:"space-between",marginBottom:3,alignItems:"center"}},
-                React.createElement("span",{style:{fontSize:12,color:C.textMuted}},p.name),
-                React.createElement("div",{style:{display:"flex",gap:8,alignItems:"center"}},
-                  React.createElement("span",{style:{fontSize:12,fontWeight:700}},fmt(p.spend)+" ("+p.pct+"%)"),
-                  md!=null&&React.createElement(DeltaBadge,{val:md,suffix:"%"}))),
-              React.createElement("div",{style:{height:4,background:C.border,borderRadius:2,overflow:"hidden"}},
-                React.createElement("div",{style:{width:p.pct+"%",height:"100%",background:[C.accent,C.accentMuted,C.blue,C.green,C.amber,C.orange][i%6]}})));
-          }))),
-      React.createElement("div",{style:{background:C.card,border:"1px solid "+C.border,borderRadius:10,padding:20}},
-        React.createElement("div",{style:{fontSize:13,fontWeight:700,marginBottom:14}},"Flag Summary"),
-        React.createElement("div",{style:{display:"flex",gap:12,flexWrap:"wrap"}},
-          flagDefs.map(function(f){
-            var ap=mom&&mom.flags&&mom.flags[f.mk]&&mom.flags[f.mk].april;
-            var fd=(ap!=null)?f.count-ap:null;
-            return React.createElement("div",{key:f.label,style:{background:C.bg,border:"1px solid "+C.border,borderRadius:8,padding:"12px 16px",minWidth:110,flex:1}},
-              React.createElement("div",{style:{display:"flex",alignItems:"baseline",gap:8,marginBottom:2}},
-                React.createElement("div",{style:{fontSize:22,fontWeight:800,color:f.color,letterSpacing:"-0.03em"}},f.count),
-                fd!=null&&React.createElement(DeltaBadge,{val:fd,suffix:"",invert:f.label!=="Max Plan Confirmed"&&f.label!=="Max Plan Approaching"})),
-              React.createElement("div",{style:{fontSize:12,fontWeight:600}},f.label),
-              React.createElement("div",{style:{fontSize:11,color:C.textDim}},f.desc));
-          }))));
-  }
-
-  function TrendsTab(){
-    if(months.length<2){
-      return React.createElement("div",{style:{padding:40,textAlign:"center",color:C.textMuted}},"Need 2+ months of history for trends.");
+function fmtInt(n) {
+  return (n || 0).toLocaleString("en-US");
+}
+function fmtK(n) {
+  n = n || 0;
+  if (n >= 1000000) return (n / 1000000).toFixed(1) + "M";
+  if (n >= 1000) return (n / 1000).toFixed(0) + "K";
+  return String(Math.round(n));
+}
+const TABS_BASE = [{
+  id: "overview",
+  label: "Overview"
+}, {
+  id: "leaderboard",
+  label: "Leaderboard"
+}, {
+  id: "allusers",
+  label: "All Users"
+}, {
+  id: "trends",
+  label: "Trends"
+}, {
+  id: "flags",
+  label: "Flags & Alerts"
+}, {
+  id: "breakdown",
+  label: "Breakdowns"
+}];
+function StatCard({
+  label,
+  value,
+  sub,
+  color
+}) {
+  return React.createElement("div", {
+    style: {
+      background: C.card,
+      border: `1px solid ${C.border}`,
+      borderRadius: 12,
+      padding: "16px 20px",
+      flex: "1 1 0",
+      minWidth: 160
     }
-    var sections=[
-      {title:"Spend & Volume",rows:[
-        {label:"Total Spend",vals:months.map(function(m){return m.totalSpend;}),color:C.accent,av:mom.spend.april,mv:mom.spend.may,d:mom.spend.deltaPct},
-        {label:"Active Users",vals:months.map(function(m){return m.activeUsers;}),color:C.blue,av:mom.users.april,mv:mom.users.may,d:mom.users.deltaPct,f:function(v){return v.toLocaleString();}},
-        {label:"Avg / User",vals:months.map(function(m){return m.avgSpend;}),color:C.accentMuted,av:mom.avgSpend.april,mv:mom.avgSpend.may,d:mom.avgSpend.deltaPct}
-      ]},
-      {title:"Model Mix",rows:[
-        {label:"Opus Spend",vals:months.map(function(m){return m.opusSpend;}),color:C.red,av:mom.opusSpend.april,mv:mom.opusSpend.may,d:mom.opusSpend.deltaPct,inv:true},
-        {label:"Sonnet Spend",vals:months.map(function(m){return m.sonnetSpend;}),color:C.accent,av:months[0].sonnetSpend,mv:months[1].sonnetSpend,d:Math.round((months[1].sonnetSpend/months[0].sonnetSpend-1)*1000)/10},
-        {label:"Opus %",vals:months.map(function(m){return m.opusPct;}),color:C.red,av:mom.opusPct.april,mv:mom.opusPct.may,d:mom.opusPct.delta,inv:true,f:function(v){return v+"%";}},
-        {label:"Sonnet %",vals:months.map(function(m){return m.sonnetPct;}),color:C.accent,av:mom.sonnetPct.april,mv:mom.sonnetPct.may,d:mom.sonnetPct.delta,f:function(v){return v+"%";}}
-      ]},
-      {title:"Flag Counts",rows:[
-        {label:"Cowork\u2192Opus",vals:months.map(function(m){return(m.flagCounts&&m.flagCounts.coworkOpus)||0;}),color:"#7e22ce",av:mom.flags.coworkOpus.april,mv:mom.flags.coworkOpus.may,d:mom.flags.coworkOpus.may-mom.flags.coworkOpus.april,inv:true,f:function(v){return String(v);}},
-        {label:"Opus-Heavy Chat",vals:months.map(function(m){return(m.flagCounts&&m.flagCounts.opusHeavy)||0;}),color:C.amber,av:mom.flags.opusHeavy.april,mv:mom.flags.opusHeavy.may,d:mom.flags.opusHeavy.may-mom.flags.opusHeavy.april,inv:true,f:function(v){return String(v);}},
-        {label:"Legacy Models",vals:months.map(function(m){return(m.flagCounts&&m.flagCounts.legacy)||0;}),color:C.green,av:mom.flags.legacy.april,mv:mom.flags.legacy.may,d:mom.flags.legacy.may-mom.flags.legacy.april,inv:true,f:function(v){return String(v);}},
-        {label:"Max Plan Confirmed",vals:months.map(function(m){return(m.flagCounts&&m.flagCounts.maxPlanConfirmed)||0;}),color:C.red,av:mom.flags.maxPlanConfirmed.april,mv:mom.flags.maxPlanConfirmed.may,d:mom.flags.maxPlanConfirmed.may-mom.flags.maxPlanConfirmed.april,f:function(v){return String(v);}}
-      ]},
-      {title:"Product Spend",rows:["Chat","Cowork","Claude Code","Claude in Chrome","Claude Design"].map(function(p){
-        var colors={Chat:C.accent,Cowork:C.blue,"Claude Code":C.green,"Claude in Chrome":C.amber,"Claude Design":C.orange};
-        return{label:p,vals:months.map(function(m){return(m.productSpend&&m.productSpend[p])||0;}),color:colors[p]||C.textDim,av:(mom.products[p]&&mom.products[p].april)||0,mv:(mom.products[p]&&mom.products[p].may)||0,d:mom.products[p]&&mom.products[p].deltaPct};
-      })}
-    ];
-    var momGrid=[
-      {label:"Total Spend",av:mom.spend.april,mv:mom.spend.may,d:mom.spend.deltaPct,f:fmt},
-      {label:"Active Users",av:mom.users.april,mv:mom.users.may,d:mom.users.deltaPct,f:function(v){return v.toLocaleString();}},
-      {label:"Avg Spend/User",av:mom.avgSpend.april,mv:mom.avgSpend.may,d:mom.avgSpend.deltaPct,f:fmt},
-      {label:"Opus Spend",av:mom.opusSpend.april,mv:mom.opusSpend.may,d:mom.opusSpend.deltaPct,f:fmt,inv:true},
-      {label:"Opus Mix %",av:mom.opusPct.april+"%",mv:mom.opusPct.may+"%",d:mom.opusPct.delta,sfx:"pp",inv:true,f:function(v){return v;}},
-      {label:"Sonnet Mix %",av:mom.sonnetPct.april+"%",mv:mom.sonnetPct.may+"%",d:mom.sonnetPct.delta,sfx:"pp",f:function(v){return v;}}
-    ];
-    return React.createElement("div",{style:{padding:24}},
-      React.createElement("div",{style:{background:C.card,border:"1px solid "+C.border,borderRadius:10,padding:20,marginBottom:16}},
-        React.createElement("div",{style:{fontSize:13,fontWeight:700,marginBottom:4}},"Month-over-Month Summary"),
-        React.createElement("div",{style:{fontSize:12,color:C.textMuted,marginBottom:20}},"April 2026 \u2192 May 2026"),
-        React.createElement("div",{style:{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:16}},
-          momGrid.map(function(x){
-            return React.createElement("div",{key:x.label,style:{background:C.bg,borderRadius:8,padding:"12px 16px"}},
-              React.createElement("div",{style:{fontSize:11,color:C.textDim,marginBottom:6}},x.label),
-              React.createElement("div",{style:{display:"flex",justifyContent:"space-between",alignItems:"baseline",marginBottom:4}},
-                React.createElement("div",{style:{fontSize:11,color:C.textMuted}},"Apr ",React.createElement("span",{style:{color:C.text,fontWeight:600}},x.f(x.av))),
-                React.createElement("div",{style:{fontSize:13,fontWeight:800}},"May ",x.f(x.mv))),
-              React.createElement(DeltaBadge,{val:x.d,suffix:x.sfx||"%",invert:x.inv||false}));
-          }))),
-      sections.map(function(sec){
-        return React.createElement("div",{key:sec.title,style:{background:C.card,border:"1px solid "+C.border,borderRadius:10,padding:20,marginBottom:16}},
-          React.createElement("div",{style:{fontSize:13,fontWeight:700,marginBottom:16}},sec.title),
-          React.createElement("div",{style:{display:"grid",gridTemplateColumns:"160px 1fr 90px 90px 100px",gap:12,padding:"0 0 8px",borderBottom:"2px solid "+C.border,marginBottom:4}},
-            ["Metric","Trend","April","May","MoM"].map(function(h){return React.createElement("span",{key:h,style:{fontSize:11,fontWeight:700,textTransform:"uppercase",color:C.textDim}},h);})),
-          sec.rows.map(function(r){
-            var fmtFn=r.f||fmt;
-            return React.createElement("div",{key:r.label,style:{display:"grid",gridTemplateColumns:"160px 1fr 90px 90px 100px",gap:12,alignItems:"center",padding:"10px 0",borderBottom:"1px solid "+C.border}},
-              React.createElement("span",{style:{fontSize:13,color:C.textMuted}},r.label),
-              React.createElement(SparkLine,{values:r.vals,color:r.color,width:120,height:28}),
-              React.createElement("span",{style:{textAlign:"right",fontSize:12,color:C.textDim}},fmtFn(r.av)),
-              React.createElement("span",{style:{textAlign:"right",fontSize:13,fontWeight:700}},fmtFn(r.mv)),
-              React.createElement("div",null,r.d!=null&&React.createElement(DeltaBadge,{val:r.d,suffix:"%",invert:r.inv||false})));
-          }));
-      }));
-  }
-
-  function LeaderboardTab(){
-    return React.createElement("div",{style:{padding:24}},
-      React.createElement("div",{style:{background:C.card,border:"1px solid "+C.border,borderRadius:10,overflow:"hidden"}},
-        React.createElement("div",{style:{display:"grid",gridTemplateColumns:"28px 1fr 100px 80px 80px 80px 80px 120px",gap:8,padding:"10px 16px",background:C.bg,borderBottom:"1px solid "+C.border,fontSize:11,fontWeight:700,textTransform:"uppercase",color:C.textDim}},
-          ["#","User","Spend","Reqs","$/Req","Opus%","Model","Flags"].map(function(h,i){return React.createElement("span",{key:i,style:{textAlign:i>1&&i<6?"right":"left"}},h);})),
-        (DATA.leaderboard||[]).map(function(u,i){
-          return React.createElement("div",{key:u.email},
-            React.createElement("div",{onClick:function(){setExp(exp===u.email?null:u.email);},style:{display:"grid",gridTemplateColumns:"28px 1fr 100px 80px 80px 80px 80px 120px",gap:8,padding:"12px 16px",borderBottom:"1px solid "+C.border,cursor:"pointer",background:exp===u.email?C.accentLight:i%2===0?C.card:"#f9fafb",alignItems:"center"}},
-              React.createElement("span",{style:{fontSize:12,color:C.textDim,fontWeight:600}},i+1),
-              React.createElement("div",null,React.createElement("div",{style:{fontSize:13,fontWeight:600}},u.name),React.createElement("div",{style:{fontSize:11,color:C.textDim}},u.email)),
-              React.createElement("span",{style:{textAlign:"right",fontSize:13,fontWeight:700}},fmt(u.spend)),
-              React.createElement("span",{style:{textAlign:"right",fontSize:12,color:C.textMuted}},u.requests.toLocaleString()),
-              React.createElement("span",{style:{textAlign:"right",fontSize:12,color:C.textMuted}},"$"+u.cpr.toFixed(3)),
-              React.createElement("span",{style:{textAlign:"right",fontSize:12,color:u.opusPct>30?C.red:C.textMuted}},u.opusPct+"%"),
-              React.createElement(MBar,{modelMix:u.modelMix}),
-              React.createElement("div",{style:{display:"flex",gap:3,flexWrap:"wrap"}},(u.flags||[]).map(function(f){return React.createElement(FlagPill,{key:f,flag:f}); }))),
-            exp===u.email&&React.createElement(ExpandRow,{user:u}));
-        })));
-  }
-
-  function AllUsersTab(){
-    var filtered=(DATA.allUsers||[]).filter(function(u){return !search||u.name.toLowerCase().includes(search.toLowerCase())||u.email.toLowerCase().includes(search.toLowerCase());});
-    filtered.sort(function(a,b){return sort==="spend"?b.spend-a.spend:sort==="requests"?b.requests-a.requests:b.cpr-a.cpr;});
-    return React.createElement("div",{style:{padding:24}},
-      React.createElement("div",{style:{display:"flex",gap:10,marginBottom:16,alignItems:"center"}},
-        React.createElement("input",{value:search,onChange:function(e){setSearch(e.target.value);},placeholder:"Search users...",style:{padding:"8px 12px",borderRadius:6,border:"1px solid "+C.border,fontSize:13,width:240,outline:"none",background:C.card}}),
-        React.createElement("select",{value:sort,onChange:function(e){setSort(e.target.value);},style:{padding:"8px 10px",borderRadius:6,border:"1px solid "+C.border,fontSize:13,background:C.card}},
-          React.createElement("option",{value:"spend"},"Sort: Spend"),
-          React.createElement("option",{value:"requests"},"Sort: Requests"),
-          React.createElement("option",{value:"cpr"},"Sort: $/Req")),
-        React.createElement("span",{style:{fontSize:12,color:C.textDim}},filtered.length+" users")),
-      React.createElement("div",{style:{background:C.card,border:"1px solid "+C.border,borderRadius:10,overflow:"hidden"}},
-        React.createElement("div",{style:{display:"grid",gridTemplateColumns:"1fr 100px 70px 70px 80px 80px 110px",gap:8,padding:"10px 16px",background:C.bg,borderBottom:"1px solid "+C.border,fontSize:11,fontWeight:700,textTransform:"uppercase",color:C.textDim}},
-          ["User","Spend","Reqs","$/Req","Model","Top Product","Flags"].map(function(h,i){return React.createElement("span",{key:i,style:{textAlign:i>0&&i<4?"right":"left"}},h);})),
-        filtered.map(function(u,i){
-          return React.createElement("div",{key:u.email},
-            React.createElement("div",{onClick:function(){setAuExp(auExp===u.email?null:u.email);},style:{display:"grid",gridTemplateColumns:"1fr 100px 70px 70px 80px 80px 110px",gap:8,padding:"10px 16px",borderBottom:"1px solid "+C.border,cursor:"pointer",background:auExp===u.email?C.accentLight:i%2===0?C.card:"#f9fafb",alignItems:"center"}},
-              React.createElement("div",null,React.createElement("div",{style:{fontSize:12,fontWeight:600}},u.name),React.createElement("div",{style:{fontSize:11,color:C.textDim}},u.email)),
-              React.createElement("span",{style:{textAlign:"right",fontSize:12,fontWeight:700}},fmt(u.spend)),
-              React.createElement("span",{style:{textAlign:"right",fontSize:11,color:C.textMuted}},u.requests.toLocaleString()),
-              React.createElement("span",{style:{textAlign:"right",fontSize:11,color:C.textMuted}},"$"+u.cpr.toFixed(3)),
-              React.createElement(MBar,{modelMix:u.modelMix}),
-              React.createElement("span",{style:{fontSize:11,color:C.textMuted,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}},u.topProduct),
-              React.createElement("div",{style:{display:"flex",gap:2,flexWrap:"wrap"}},(u.flags||[]).map(function(f){return React.createElement(FlagPill,{key:f,flag:f}); }))),
-            auExp===u.email&&React.createElement(ExpandRow,{user:u}));
-        })));
-  }
-
-  function FlagsTab(){
-    var flagSections=[
-      {id:"max",lb:"Max Plan ("+((DATA.maxPlan||[]).length+(DATA.maxApproaching||[]).length)+")"},
-      {id:"cowork",lb:"Cowork\u2192Opus ("+((DATA.coworkOpus||[]).length)+")"},
-      {id:"opus",lb:"Opus Heavy ("+((DATA.opusHeavy||[]).length)+")"},
-      {id:"legacy",lb:"Legacy ("+((DATA.legacyModels||[]).length)+")"},
-      {id:"loweng",lb:"Low Engagement ("+((DATA.lowEngagement||[]).length)+")"}
-    ];
-    return React.createElement("div",{style:{padding:24}},
-      React.createElement("div",{style:{display:"flex",gap:6,marginBottom:20,flexWrap:"wrap"}},
-        flagSections.map(function(sec){
-          return React.createElement("button",{key:sec.id,onClick:function(){setFlagSec(sec.id);},style:{padding:"6px 14px",borderRadius:99,border:"1px solid "+(flagSec===sec.id?C.accent:C.border),background:flagSec===sec.id?C.accentLight:C.card,color:flagSec===sec.id?C.accent:C.textMuted,fontSize:12,fontWeight:600,cursor:"pointer"}},sec.lb);
-        })),
-      flagSec==="max"&&React.createElement("div",null,
-        (DATA.maxPlan||[]).length>0&&React.createElement("div",{style:{background:"#fef2f2",border:"1px solid #fca5a5",borderRadius:10,padding:16,marginBottom:16}},
-          React.createElement("div",{style:{fontSize:13,fontWeight:700,color:"#dc2626",marginBottom:10}},"Confirmed Max Plan (\u2265$800/mo)"),
-          (DATA.maxPlan||[]).map(function(u){
-            return React.createElement("div",{key:u.email,style:{display:"flex",justifyContent:"space-between",padding:"6px 0",borderBottom:"1px solid #fca5a5",fontSize:13}},
-              React.createElement("div",null,React.createElement("span",{style:{fontWeight:600}},u.name)," ",React.createElement("span",{style:{color:C.textDim,fontSize:11}},u.email)),
-              React.createElement("span",{style:{fontWeight:700,color:"#dc2626"}},fmt(u.spend)));
-          })),
-        React.createElement("div",{style:{background:"#fff7ed",border:"1px solid #fdba74",borderRadius:10,padding:16}},
-          React.createElement("div",{style:{fontSize:13,fontWeight:700,color:"#c2410c",marginBottom:10}},"Approaching Max Plan ($400\u2013$799) \u2014 "+(DATA.maxApproaching||[]).length+" users"),
-          (DATA.maxApproaching||[]).map(function(u){
-            return React.createElement("div",{key:u.email,style:{display:"flex",justifyContent:"space-between",padding:"6px 0",borderBottom:"1px solid #fdba74",fontSize:13}},
-              React.createElement("div",null,React.createElement("span",{style:{fontWeight:600}},u.name)," ",React.createElement("span",{style:{color:C.textDim,fontSize:11}},u.email)),
-              React.createElement("span",{style:{fontWeight:700,color:"#c2410c"}},fmt(u.spend)));
-          }))),
-      flagSec==="cowork"&&React.createElement("div",{style:{background:C.card,border:"1px solid "+C.border,borderRadius:10,overflow:"hidden"}},
-        React.createElement("div",{style:{padding:"10px 16px",background:C.bg,borderBottom:"1px solid "+C.border,fontSize:11,fontWeight:700,textTransform:"uppercase",color:C.textDim}},(DATA.coworkOpus||[]).length+" users routing Cowork to Opus"),
-        (DATA.coworkOpus||[]).map(function(u,i){
-          return React.createElement("div",{key:u.email,style:{display:"grid",gridTemplateColumns:"1fr 100px 80px 80px 100px",gap:8,padding:"10px 16px",borderBottom:"1px solid "+C.border,background:i%2===0?C.card:"#f9fafb",alignItems:"center"}},
-            React.createElement("div",null,React.createElement("div",{style:{fontSize:13,fontWeight:600}},u.name),React.createElement("div",{style:{fontSize:11,color:C.textDim}},u.email)),
-            React.createElement("span",{style:{textAlign:"right",fontWeight:700,fontSize:13}},fmt(u.spend)),
-            React.createElement("span",{style:{textAlign:"right",fontSize:12,color:C.textMuted}},u.requests.toLocaleString()+" reqs"),
-            React.createElement("span",{style:{textAlign:"right",fontSize:12,color:C.textMuted}},fmt(u.totalSpend)+" total"),
-            React.createElement("span",{style:{textAlign:"right",fontSize:11,color:"#7e22ce",fontWeight:600}},fmtM(u.model)));
-        })),
-      flagSec==="opus"&&React.createElement("div",{style:{background:C.card,border:"1px solid "+C.border,borderRadius:10,overflow:"hidden"}},
-        React.createElement("div",{style:{padding:"10px 16px",background:C.bg,borderBottom:"1px solid "+C.border,fontSize:11,fontWeight:700,textTransform:"uppercase",color:C.textDim}},(DATA.opusHeavy||[]).length+" users with \u226530% Chat spend on Opus"),
-        (DATA.opusHeavy||[]).map(function(u,i){
-          return React.createElement("div",{key:u.email,style:{display:"grid",gridTemplateColumns:"1fr 80px 100px 100px 100px",gap:8,padding:"10px 16px",borderBottom:"1px solid "+C.border,background:i%2===0?C.card:"#f9fafb",alignItems:"center"}},
-            React.createElement("div",null,React.createElement("div",{style:{fontSize:13,fontWeight:600}},u.name),React.createElement("div",{style:{fontSize:11,color:C.textDim}},u.email)),
-            React.createElement("span",{style:{textAlign:"right",fontSize:13,fontWeight:700,color:C.red}},u.opusPct+"%"),
-            React.createElement("span",{style:{textAlign:"right",fontSize:12,color:C.red}},"Opus "+fmt(u.opusSpend)),
-            React.createElement("span",{style:{textAlign:"right",fontSize:12,color:C.textMuted}},"Chat "+fmt(u.chatSpend)),
-            React.createElement("span",{style:{textAlign:"right",fontSize:12,color:C.textDim}},"Total "+fmt(u.totalSpend)));
-        })),
-      flagSec==="legacy"&&React.createElement("div",{style:{background:C.card,border:"1px solid "+C.border,borderRadius:10,overflow:"hidden"}},
-        React.createElement("div",{style:{padding:"10px 16px",background:C.bg,borderBottom:"1px solid "+C.border,fontSize:11,fontWeight:700,textTransform:"uppercase",color:C.textDim}},(DATA.legacyModels||[]).length+" users on deprecated model versions"),
-        (DATA.legacyModels||[]).map(function(u,i){
-          return React.createElement("div",{key:u.email,style:{display:"grid",gridTemplateColumns:"1fr 100px 100px 1fr",gap:8,padding:"10px 16px",borderBottom:"1px solid "+C.border,background:i%2===0?C.card:"#f9fafb",alignItems:"center"}},
-            React.createElement("div",null,React.createElement("div",{style:{fontSize:13,fontWeight:600}},u.name),React.createElement("div",{style:{fontSize:11,color:C.textDim}},u.email)),
-            React.createElement("span",{style:{textAlign:"right",fontSize:12,fontWeight:600}},fmt(u.legacySpend)),
-            React.createElement("span",{style:{textAlign:"right",fontSize:12,color:C.textDim}},"Total "+fmt(u.totalSpend)),
-            React.createElement("div",{style:{display:"flex",gap:4,flexWrap:"wrap"}},(u.models||[]).map(function(m){return React.createElement("span",{key:m,style:{fontSize:10,background:"#dcfce7",color:"#166534",padding:"2px 6px",borderRadius:99,fontWeight:600}},fmtM(m));})));
-        })),
-      flagSec==="loweng"&&React.createElement("div",null,
-        React.createElement("div",{style:{background:"#f0f9ff",border:"1px solid #7dd3fc",borderRadius:10,padding:"10px 16px",marginBottom:12,fontSize:12,color:"#0369a1"}},"Low engagement tracks seat utilization, not cost. "+(DATA.lowEngagement||[]).length+" users with <$10 spend this month."),
-        React.createElement("div",{style:{background:C.card,border:"1px solid "+C.border,borderRadius:10,overflow:"hidden"}},
-          (DATA.lowEngagement||[]).map(function(u,i){
-            return React.createElement("div",{key:u.email,style:{display:"grid",gridTemplateColumns:"1fr 100px 80px",gap:8,padding:"10px 16px",borderBottom:"1px solid "+C.border,background:i%2===0?C.card:"#f9fafb",alignItems:"center"}},
-              React.createElement("div",null,React.createElement("div",{style:{fontSize:13,fontWeight:600}},u.name),React.createElement("div",{style:{fontSize:11,color:C.textDim}},u.email)),
-              React.createElement("span",{style:{textAlign:"right",fontSize:12}},fmt(u.spend)),
-              React.createElement("span",{style:{textAlign:"right",fontSize:12,color:C.textDim}},u.requests+" reqs"));
-          }))));
-  }
-
-  function BreakdownsTab(){
-    return React.createElement("div",{style:{padding:24}},
-      React.createElement("div",{style:{display:"grid",gridTemplateColumns:"1fr 1fr",gap:16}},
-        React.createElement("div",{style:{background:C.card,border:"1px solid "+C.border,borderRadius:10,padding:20}},
-          React.createElement("div",{style:{fontSize:13,fontWeight:700,marginBottom:14}},"Model Versions"),
-          (DATA.models||[]).map(function(m){
-            return React.createElement("div",{key:m.name,style:{marginBottom:10}},
-              React.createElement("div",{style:{display:"flex",justifyContent:"space-between",marginBottom:3,alignItems:"center"}},
-                React.createElement("div",{style:{display:"flex",alignItems:"center",gap:6}},
-                  React.createElement("span",{style:{fontSize:12,color:mColor(m.name),fontWeight:600}},fmtM(m.name)),
-                  m.isLegacy&&React.createElement("span",{style:{fontSize:9,background:"#dcfce7",color:"#166534",padding:"1px 5px",borderRadius:99,fontWeight:700,textTransform:"uppercase"}},"legacy")),
-                React.createElement("span",{style:{fontSize:12,fontWeight:700}},fmt(m.spend)+" ",React.createElement("span",{style:{color:C.textDim,fontWeight:400}},"("+m.pct+"%)"))),
-              React.createElement("div",{style:{height:4,background:C.border,borderRadius:2,overflow:"hidden"}},
-                React.createElement("div",{style:{width:m.pct+"%",height:"100%",background:mColor(m.name)}})),
-              React.createElement("div",{style:{fontSize:10,color:C.textDim,marginTop:2}},m.requests.toLocaleString()+" reqs"));
-          })),
-        React.createElement("div",{style:{background:C.card,border:"1px solid "+C.border,borderRadius:10,padding:20}},
-          React.createElement("div",{style:{fontSize:13,fontWeight:700,marginBottom:4}},"Power Users"),
-          React.createElement("div",{style:{fontSize:11,color:C.textDim,marginBottom:12}},"\u226585% Sonnet/Haiku | \u2265$100 | \u2265100 reqs"),
-          (DATA.powerUsers||[]).slice(0,12).map(function(u){
-            return React.createElement("div",{key:u.email,style:{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"6px 0",borderBottom:"1px solid "+C.border,fontSize:12}},
-              React.createElement("div",null,React.createElement("span",{style:{fontWeight:600}},u.name),React.createElement("span",{style:{fontSize:10,color:C.textDim,marginLeft:6}},u.requests.toLocaleString()+" reqs")),
-              React.createElement("div",{style:{textAlign:"right"}},
-                React.createElement("div",{style:{fontWeight:700}},"$"+u.cpr.toFixed(3)+"/req"),
-                React.createElement("div",{style:{fontSize:10,color:C.green}},u.efficientPct+"% efficient")));
-          }))));
-  }
-
-  return React.createElement("div",{style:{background:C.bg,minHeight:"100vh"}},
-    React.createElement(Header,null),
-    tab==="overview"&&React.createElement(OverviewTab,null),
-    tab==="leaderboard"&&React.createElement(LeaderboardTab,null),
-    tab==="allusers"&&React.createElement(AllUsersTab,null),
-    tab==="trends"&&React.createElement(TrendsTab,null),
-    tab==="flags"&&React.createElement(FlagsTab,null),
-    tab==="breakdowns"&&React.createElement(BreakdownsTab,null));
+  }, React.createElement("div", {
+    style: {
+      fontSize: 11,
+      textTransform: "uppercase",
+      letterSpacing: "0.07em",
+      color: C.textMuted,
+      marginBottom: 6,
+      fontWeight: 600
+    }
+  }, label), React.createElement("div", {
+    style: {
+      fontSize: 26,
+      fontWeight: 700,
+      color: color || C.text,
+      letterSpacing: "-0.02em"
+    }
+  }, value), sub && React.createElement("div", {
+    style: {
+      fontSize: 12,
+      color: C.textDim,
+      marginTop: 4
+    }
+  }, sub));
 }
-
-ReactDOM.createRoot(document.getElementById("root")).render(React.createElement(App));
-
+function Bar({
+  pct,
+  color
+}) {
+  return React.createElement("div", {
+    style: {
+      width: "100%",
+      height: 6,
+      borderRadius: 3,
+      background: C.border,
+      overflow: "hidden"
+    }
+  }, React.createElement("div", {
+    style: {
+      width: Math.min(pct, 100) + "%",
+      height: "100%",
+      borderRadius: 3,
+      background: color || C.accent
+    }
+  }));
+}
+function ModelBar({
+  models
+}) {
+  const total = (models.opus || 0) + (models.sonnet || 0) + (models.haiku || 0);
+  if (total <= 0) return React.createElement("div", {
+    style: {
+      height: 8
+    }
+  });
+  const o = (models.opus || 0) / total * 100;
+  const s = (models.sonnet || 0) / total * 100;
+  const h = (models.haiku || 0) / total * 100;
+  return React.createElement("div", {
+    style: {
+      display: "flex",
+      gap: 2,
+      height: 8,
+      borderRadius: 4,
+      overflow: "hidden",
+      width: "100%",
+      minWidth: 60
+    }
+  }, o > 0 && React.createElement("div", {
+    style: {
+      width: o + "%",
+      background: C.purple,
+      minWidth: 2
+    },
+    title: `Opus ${o.toFixed(0)}%`
+  }), s > 0 && React.createElement("div", {
+    style: {
+      width: s + "%",
+      background: C.accent,
+      minWidth: 2
+    },
+    title: `Sonnet ${s.toFixed(0)}%`
+  }), h > 0 && React.createElement("div", {
+    style: {
+      width: h + "%",
+      background: C.green,
+      minWidth: 2
+    },
+    title: `Haiku ${h.toFixed(0)}%`
+  }));
+}
+function FlagPill({
+  type
+}) {
+  const m = FLAG_META[type];
+  if (!m) return null;
+  return React.createElement("span", {
+    style: {
+      fontSize: 10,
+      fontWeight: 700,
+      letterSpacing: "0.03em",
+      padding: "2px 7px",
+      borderRadius: 6,
+      background: m.soft,
+      color: m.color,
+      marginRight: 4,
+      whiteSpace: "nowrap"
+    }
+  }, m.label);
+}
+function CollapseCard({
+  icon,
+  title,
+  count,
+  color,
+  soft,
+  defaultOpen,
+  children
+}) {
+  const [open, setOpen] = useState(defaultOpen !== false);
+  return React.createElement("div", {
+    style: {
+      background: C.card,
+      border: `1px solid ${C.border}`,
+      borderRadius: 12,
+      overflow: "hidden",
+      marginBottom: 16
+    }
+  }, React.createElement("div", {
+    onClick: () => setOpen(!open),
+    style: {
+      display: "flex",
+      alignItems: "center",
+      gap: 10,
+      padding: "14px 18px",
+      cursor: "pointer",
+      borderBottom: open ? `1px solid ${C.border}` : "none"
+    }
+  }, React.createElement("span", {
+    style: {
+      fontSize: 17
+    }
+  }, icon), React.createElement("span", {
+    style: {
+      fontWeight: 600,
+      fontSize: 14,
+      color: C.text,
+      flex: 1
+    }
+  }, title), count != null && React.createElement("span", {
+    style: {
+      background: soft,
+      color,
+      fontSize: 12,
+      fontWeight: 700,
+      padding: "3px 10px",
+      borderRadius: 12
+    }
+  }, count), React.createElement("span", {
+    style: {
+      color: C.textDim,
+      fontSize: 13,
+      transform: open ? "rotate(180deg)" : "none",
+      transition: "transform .2s"
+    }
+  }, "▾")), open && React.createElement("div", null, children));
+}
+function OverviewTab() {
+  const s = DATA.summary;
+  const fam = DATA.modelFamilySpend;
+  const famTotal = fam.opus + fam.sonnet + fam.haiku + fam.other;
+  const pct = v => famTotal ? v / famTotal * 100 : 0;
+  const products = DATA.products.filter(p => p.spend > 0);
+  const maxProd = Math.max(...products.map(p => p.spend), 1);
+  return React.createElement("div", null, React.createElement("div", {
+    style: {
+      display: "flex",
+      gap: 12,
+      flexWrap: "wrap",
+      marginBottom: 16
+    }
+  }, React.createElement(StatCard, {
+    label: "Total org spend",
+    value: fmt0(s.totalSpend),
+    sub: `${s.monthOf} · net`
+  }), React.createElement(StatCard, {
+    label: "Active users",
+    value: fmtInt(s.activeUsers),
+    sub: "≥1 request"
+  }), React.createElement(StatCard, {
+    label: "Avg spend / user",
+    value: fmt(s.avgSpend)
+  }), React.createElement(StatCard, {
+    label: "Total requests",
+    value: fmtK(s.totalRequests),
+    sub: fmtInt(s.totalRequests)
+  }), React.createElement(StatCard, {
+    label: "Top 10 concentration",
+    value: s.top10Pct + "%",
+    sub: fmt0(s.top10Spend)
+  }), React.createElement(StatCard, {
+    label: "Org cache hit rate",
+    value: s.orgCacheHitRate + "%",
+    sub: "cache read / prompt tokens",
+    color: C.green
+  })), React.createElement("div", {
+    style: {
+      display: "flex",
+      gap: 16,
+      flexWrap: "wrap"
+    }
+  }, React.createElement("div", {
+    style: {
+      background: C.card,
+      border: `1px solid ${C.border}`,
+      borderRadius: 12,
+      padding: 18,
+      flex: "1 1 340px"
+    }
+  }, React.createElement("div", {
+    style: {
+      fontWeight: 600,
+      fontSize: 14,
+      marginBottom: 14
+    }
+  }, "Model mix (spend)"), [["Sonnet", fam.sonnet, C.accent], ["Opus", fam.opus, C.purple], ["Haiku", fam.haiku, C.green], ["Other (Fable)", fam.other, C.textDim]].map(([n, v, col]) => React.createElement("div", {
+    key: n,
+    style: {
+      marginBottom: 12
+    }
+  }, React.createElement("div", {
+    style: {
+      display: "flex",
+      justifyContent: "space-between",
+      fontSize: 13,
+      marginBottom: 5
+    }
+  }, React.createElement("span", {
+    style: {
+      color: C.text
+    }
+  }, n), React.createElement("span", {
+    style: {
+      color: C.textMuted
+    }
+  }, fmt(v), " · ", pct(v).toFixed(1), "%")), React.createElement(Bar, {
+    pct: pct(v),
+    color: col
+  })))), React.createElement("div", {
+    style: {
+      background: C.card,
+      border: `1px solid ${C.border}`,
+      borderRadius: 12,
+      padding: 18,
+      flex: "1 1 340px"
+    }
+  }, React.createElement("div", {
+    style: {
+      fontWeight: 600,
+      fontSize: 14,
+      marginBottom: 14
+    }
+  }, "Product mix (spend)"), products.map(p => React.createElement("div", {
+    key: p.name,
+    style: {
+      marginBottom: 12
+    }
+  }, React.createElement("div", {
+    style: {
+      display: "flex",
+      justifyContent: "space-between",
+      fontSize: 13,
+      marginBottom: 5
+    }
+  }, React.createElement("span", {
+    style: {
+      color: C.text
+    }
+  }, p.name), React.createElement("span", {
+    style: {
+      color: C.textMuted
+    }
+  }, fmt(p.spend))), React.createElement(Bar, {
+    pct: p.spend / maxProd * 100,
+    color: C.accent
+  }))))), React.createElement("div", {
+    style: {
+      background: C.accentSoft,
+      border: `1px solid ${C.border}`,
+      borderRadius: 12,
+      padding: "14px 18px",
+      marginTop: 16,
+      fontSize: 13,
+      color: C.textMuted,
+      lineHeight: 1.6
+    }
+  }, React.createElement("strong", {
+    style: {
+      color: C.text
+    }
+  }, "Cache efficiency (reporting, not a flag)."), " Org-wide prompt-cache hit rate is ", React.createElement("strong", {
+    style: {
+      color: C.green
+    }
+  }, s.orgCacheHitRate, "%"), " (", fmtK(s.orgCacheReadTokens), " cache-read tokens against ", fmtK(s.orgPromptTokens), " prompt tokens). Near-optimal caching org-wide is why token density was retired as a cost flag as of week 17 — it never triggers a DM. Per-user cache rates appear in the All Users tab."));
+}
+function LeaderboardTab() {
+  const rows = DATA.leaderboard;
+  const max = Math.max(...rows.map(r => r.spend), 1);
+  return React.createElement("div", {
+    style: {
+      background: C.card,
+      border: `1px solid ${C.border}`,
+      borderRadius: 12,
+      overflow: "hidden"
+    }
+  }, React.createElement("div", {
+    style: {
+      padding: "14px 18px",
+      borderBottom: `1px solid ${C.border}`,
+      fontWeight: 600,
+      fontSize: 14
+    }
+  }, "Top 30 by spend"), React.createElement("div", {
+    style: {
+      overflowX: "auto"
+    }
+  }, React.createElement("table", {
+    style: {
+      width: "100%",
+      borderCollapse: "collapse",
+      fontSize: 13
+    }
+  }, React.createElement("thead", null, React.createElement("tr", {
+    style: {
+      color: C.textMuted,
+      fontSize: 11,
+      textTransform: "uppercase",
+      letterSpacing: "0.05em"
+    }
+  }, ["#", "User", "Spend", "", "Requests", "$/req", "Opus %", "Top product", "Cache"].map((h, i) => React.createElement("th", {
+    key: i,
+    style: {
+      textAlign: i >= 4 && i !== 7 ? "right" : "left",
+      padding: "10px 14px",
+      fontWeight: 600,
+      borderBottom: `1px solid ${C.border}`
+    }
+  }, h)))), React.createElement("tbody", null, rows.map((r, i) => React.createElement("tr", {
+    key: r.email,
+    style: {
+      borderBottom: `1px solid ${C.border}`
+    }
+  }, React.createElement("td", {
+    style: {
+      padding: "9px 14px",
+      color: C.textDim
+    }
+  }, i + 1), React.createElement("td", {
+    style: {
+      padding: "9px 14px"
+    }
+  }, React.createElement("div", {
+    style: {
+      fontWeight: 600,
+      color: C.text
+    }
+  }, r.name), React.createElement("div", {
+    style: {
+      fontSize: 11,
+      color: C.textDim
+    }
+  }, r.email)), React.createElement("td", {
+    style: {
+      padding: "9px 14px",
+      fontWeight: 600,
+      color: C.text,
+      textAlign: "right",
+      whiteSpace: "nowrap"
+    }
+  }, fmt(r.spend)), React.createElement("td", {
+    style: {
+      padding: "9px 14px",
+      width: 80
+    }
+  }, React.createElement(Bar, {
+    pct: r.spend / max * 100,
+    color: C.accent
+  })), React.createElement("td", {
+    style: {
+      padding: "9px 14px",
+      textAlign: "right",
+      color: C.textMuted
+    }
+  }, fmtInt(r.requests)), React.createElement("td", {
+    style: {
+      padding: "9px 14px",
+      textAlign: "right",
+      color: C.textMuted
+    }
+  }, fmt(r.cpr)), React.createElement("td", {
+    style: {
+      padding: "9px 14px",
+      textAlign: "right",
+      color: r.opusPct >= 30 ? C.purple : C.textMuted,
+      fontWeight: r.opusPct >= 30 ? 600 : 400
+    }
+  }, r.opusPct, "%"), React.createElement("td", {
+    style: {
+      padding: "9px 14px",
+      color: C.textMuted
+    }
+  }, r.topProduct, " ", React.createElement("span", {
+    style: {
+      color: C.textDim
+    }
+  }, "(", fmt0(r.topProductSpend), ")")), React.createElement("td", {
+    style: {
+      padding: "9px 14px",
+      textAlign: "right",
+      color: C.green
+    }
+  }, r.cacheHitRate, "%")))))));
+}
+function MatrixTable({
+  matrix
+}) {
+  return React.createElement("div", {
+    style: {
+      overflowX: "auto",
+      marginTop: 10
+    }
+  }, React.createElement("table", {
+    style: {
+      borderCollapse: "collapse",
+      fontSize: 12,
+      minWidth: 420
+    }
+  }, React.createElement("thead", null, React.createElement("tr", null, React.createElement("th", {
+    style: {
+      textAlign: "left",
+      padding: "6px 12px",
+      color: C.textMuted,
+      fontWeight: 600,
+      borderBottom: `1px solid ${C.border}`
+    }
+  }, "Product"), matrix.fams.map(f => React.createElement("th", {
+    key: f,
+    style: {
+      textAlign: "right",
+      padding: "6px 12px",
+      color: C.textMuted,
+      fontWeight: 600,
+      borderBottom: `1px solid ${C.border}`
+    }
+  }, f)), React.createElement("th", {
+    style: {
+      textAlign: "right",
+      padding: "6px 12px",
+      color: C.text,
+      fontWeight: 700,
+      borderBottom: `1px solid ${C.border}`
+    }
+  }, "Total"))), React.createElement("tbody", null, matrix.rows.map(row => React.createElement("tr", {
+    key: row.product
+  }, React.createElement("td", {
+    style: {
+      padding: "5px 12px",
+      color: C.text
+    }
+  }, row.product), matrix.fams.map(f => {
+    const key = f.toLowerCase();
+    const v = row.cells[key] || 0;
+    return React.createElement("td", {
+      key: f,
+      style: {
+        padding: "5px 12px",
+        textAlign: "right",
+        color: v ? C.textMuted : C.textDim
+      }
+    }, v ? fmt(v) : "—");
+  }), React.createElement("td", {
+    style: {
+      padding: "5px 12px",
+      textAlign: "right",
+      fontWeight: 600,
+      color: C.text
+    }
+  }, fmt(row.rowTotal)))), React.createElement("tr", {
+    style: {
+      borderTop: `2px solid ${C.border}`
+    }
+  }, React.createElement("td", {
+    style: {
+      padding: "6px 12px",
+      fontWeight: 700,
+      color: C.text
+    }
+  }, "Total"), matrix.fams.map(f => {
+    const v = matrix.colTotals[f.toLowerCase()] || 0;
+    return React.createElement("td", {
+      key: f,
+      style: {
+        padding: "6px 12px",
+        textAlign: "right",
+        fontWeight: 700,
+        color: C.text
+      }
+    }, v ? fmt(v) : "—");
+  }), React.createElement("td", {
+    style: {
+      padding: "6px 12px",
+      textAlign: "right",
+      fontWeight: 700,
+      color: C.accent
+    }
+  }, fmt(matrix.grandTotal))))));
+}
+function UserDetail({
+  u
+}) {
+  const maxP = Math.max(...u.productMix.map(p => p.spend), 1);
+  const maxM = Math.max(...u.modelMix.map(m => m.spend), 1);
+  return React.createElement("div", {
+    style: {
+      padding: "16px 20px",
+      background: C.cardAlt
+    }
+  }, React.createElement("div", {
+    style: {
+      display: "flex",
+      gap: 12,
+      flexWrap: "wrap",
+      marginBottom: 16
+    }
+  }, [["Spend", fmt(u.spend)], ["Requests", fmtInt(u.requests)], ["$/req", fmt(u.cpr)], ["Avg prompt tokens", fmtK(u.avgPromptTokens)], ["Cache hit", u.cacheHitRate + "%"]].map(([l, v]) => React.createElement("div", {
+    key: l,
+    style: {
+      background: C.card,
+      border: `1px solid ${C.border}`,
+      borderRadius: 8,
+      padding: "8px 14px",
+      minWidth: 110
+    }
+  }, React.createElement("div", {
+    style: {
+      fontSize: 10,
+      textTransform: "uppercase",
+      letterSpacing: "0.05em",
+      color: C.textMuted,
+      marginBottom: 3
+    }
+  }, l), React.createElement("div", {
+    style: {
+      fontSize: 15,
+      fontWeight: 600,
+      color: C.text
+    }
+  }, v)))), React.createElement("div", {
+    style: {
+      display: "flex",
+      gap: 24,
+      flexWrap: "wrap"
+    }
+  }, React.createElement("div", {
+    style: {
+      flex: "1 1 220px"
+    }
+  }, React.createElement("div", {
+    style: {
+      fontSize: 12,
+      fontWeight: 600,
+      color: C.textMuted,
+      marginBottom: 8
+    }
+  }, "Product mix"), u.productMix.map(p => React.createElement("div", {
+    key: p.name,
+    style: {
+      marginBottom: 8
+    }
+  }, React.createElement("div", {
+    style: {
+      display: "flex",
+      justifyContent: "space-between",
+      fontSize: 12,
+      marginBottom: 3
+    }
+  }, React.createElement("span", {
+    style: {
+      color: C.text
+    }
+  }, p.name), React.createElement("span", {
+    style: {
+      color: C.textMuted
+    }
+  }, fmt(p.spend), " · ", p.pct, "%")), React.createElement(Bar, {
+    pct: p.spend / maxP * 100,
+    color: C.accent
+  })))), React.createElement("div", {
+    style: {
+      flex: "1 1 220px"
+    }
+  }, React.createElement("div", {
+    style: {
+      fontSize: 12,
+      fontWeight: 600,
+      color: C.textMuted,
+      marginBottom: 8
+    }
+  }, "Model mix"), u.modelMix.map(m => {
+    const col = m.name === "Opus" ? C.purple : m.name === "Sonnet" ? C.accent : m.name === "Haiku" ? C.green : C.textDim;
+    return React.createElement("div", {
+      key: m.name,
+      style: {
+        marginBottom: 8
+      }
+    }, React.createElement("div", {
+      style: {
+        display: "flex",
+        justifyContent: "space-between",
+        fontSize: 12,
+        marginBottom: 3
+      }
+    }, React.createElement("span", {
+      style: {
+        color: C.text
+      }
+    }, m.name), React.createElement("span", {
+      style: {
+        color: C.textMuted
+      }
+    }, fmt(m.spend), " · ", m.pct, "%")), React.createElement(Bar, {
+      pct: m.spend / maxM * 100,
+      color: col
+    }));
+  }))), React.createElement(MatrixTable, {
+    matrix: u.productModelMatrix
+  }));
+}
+function AllUsersTab() {
+  const [sortKey, setSortKey] = useState("spend");
+  const [sortDir, setSortDir] = useState("desc");
+  const [search, setSearch] = useState("");
+  const [open, setOpen] = useState(null);
+  const filtered = useMemo(() => {
+    const q = search.trim().toLowerCase();
+    let list = DATA.allUsers;
+    if (q) list = list.filter(u => u.name.toLowerCase().includes(q) || u.email.toLowerCase().includes(q) || (u.topProduct || "").toLowerCase().includes(q));
+    const dir = sortDir === "asc" ? 1 : -1;
+    return [...list].sort((a, b) => {
+      let av = a[sortKey],
+        bv = b[sortKey];
+      if (sortKey === "topProduct") {
+        av = a.topProduct;
+        bv = b.topProduct;
+      }
+      if (typeof av === "string") return av.localeCompare(bv) * dir;
+      return (av - bv) * dir;
+    });
+  }, [search, sortKey, sortDir]);
+  const setSort = k => {
+    if (sortKey === k) setSortDir(d => d === "asc" ? "desc" : "asc");else {
+      setSortKey(k);
+      setSortDir("desc");
+    }
+  };
+  const arrow = k => sortKey === k ? sortDir === "asc" ? " ↑" : " ↓" : "";
+  const cols = [{
+    k: "name",
+    label: "User",
+    align: "left"
+  }, {
+    k: "spend",
+    label: "Spend",
+    align: "right"
+  }, {
+    k: "requests",
+    label: "Requests",
+    align: "right"
+  }, {
+    k: "cpr",
+    label: "$/req",
+    align: "right"
+  }, {
+    k: "avgPromptTokens",
+    label: "Avg prompt",
+    align: "right"
+  }, {
+    k: "cacheHitRate",
+    label: "Cache",
+    align: "right"
+  }, {
+    k: "models",
+    label: "Model mix",
+    align: "left",
+    nosort: true
+  }, {
+    k: "topProduct",
+    label: "Top product",
+    align: "left"
+  }, {
+    k: "flags",
+    label: "Flags",
+    align: "left",
+    nosort: true
+  }];
+  return React.createElement("div", {
+    style: {
+      background: C.card,
+      border: `1px solid ${C.border}`,
+      borderRadius: 12,
+      overflow: "hidden"
+    }
+  }, React.createElement("div", {
+    style: {
+      padding: "12px 16px",
+      borderBottom: `1px solid ${C.border}`,
+      display: "flex",
+      alignItems: "center",
+      gap: 12
+    }
+  }, React.createElement("span", {
+    style: {
+      fontWeight: 600,
+      fontSize: 14
+    }
+  }, "All active users"), React.createElement("span", {
+    style: {
+      fontSize: 12,
+      color: C.textDim
+    }
+  }, filtered.length, " shown"), React.createElement("input", {
+    value: search,
+    onChange: e => setSearch(e.target.value),
+    placeholder: "Search name, email, product…",
+    style: {
+      marginLeft: "auto",
+      background: C.cardAlt,
+      border: `1px solid ${C.border}`,
+      borderRadius: 8,
+      padding: "7px 12px",
+      fontSize: 13,
+      color: C.text,
+      width: 260,
+      outline: "none"
+    }
+  })), React.createElement("div", {
+    style: {
+      overflowX: "auto"
+    }
+  }, React.createElement("table", {
+    style: {
+      width: "100%",
+      borderCollapse: "collapse",
+      fontSize: 13
+    }
+  }, React.createElement("thead", null, React.createElement("tr", {
+    style: {
+      color: C.textMuted,
+      fontSize: 11,
+      textTransform: "uppercase",
+      letterSpacing: "0.04em"
+    }
+  }, React.createElement("th", {
+    style: {
+      width: 28,
+      borderBottom: `1px solid ${C.border}`
+    }
+  }), cols.map(c => React.createElement("th", {
+    key: c.k,
+    onClick: () => !c.nosort && setSort(c.k),
+    style: {
+      textAlign: c.align,
+      padding: "10px 14px",
+      fontWeight: 600,
+      borderBottom: `1px solid ${C.border}`,
+      cursor: c.nosort ? "default" : "pointer",
+      userSelect: "none",
+      whiteSpace: "nowrap"
+    }
+  }, c.label, c.nosort ? "" : arrow(c.k))))), React.createElement("tbody", null, filtered.map(u => {
+    const isOpen = open === u.email;
+    return React.createElement(React.Fragment, {
+      key: u.email
+    }, React.createElement("tr", {
+      onClick: () => setOpen(isOpen ? null : u.email),
+      style: {
+        borderBottom: `1px solid ${C.border}`,
+        cursor: "pointer",
+        background: isOpen ? C.accentSoft : "transparent"
+      }
+    }, React.createElement("td", {
+      style: {
+        textAlign: "center",
+        color: C.textDim,
+        fontSize: 11
+      }
+    }, isOpen ? "▾" : "▸"), React.createElement("td", {
+      style: {
+        padding: "9px 14px"
+      }
+    }, React.createElement("div", {
+      style: {
+        fontWeight: 600,
+        color: C.text
+      }
+    }, u.name), React.createElement("div", {
+      style: {
+        fontSize: 11,
+        color: C.textDim
+      }
+    }, u.email)), React.createElement("td", {
+      style: {
+        padding: "9px 14px",
+        textAlign: "right",
+        fontWeight: 600,
+        whiteSpace: "nowrap"
+      }
+    }, fmt(u.spend)), React.createElement("td", {
+      style: {
+        padding: "9px 14px",
+        textAlign: "right",
+        color: C.textMuted
+      }
+    }, fmtInt(u.requests)), React.createElement("td", {
+      style: {
+        padding: "9px 14px",
+        textAlign: "right",
+        color: C.textMuted
+      }
+    }, fmt(u.cpr)), React.createElement("td", {
+      style: {
+        padding: "9px 14px",
+        textAlign: "right",
+        color: C.textMuted
+      }
+    }, fmtK(u.avgPromptTokens)), React.createElement("td", {
+      style: {
+        padding: "9px 14px",
+        textAlign: "right",
+        color: C.green
+      }
+    }, u.cacheHitRate, "%"), React.createElement("td", {
+      style: {
+        padding: "9px 14px",
+        width: 90
+      }
+    }, React.createElement(ModelBar, {
+      models: u.models
+    })), React.createElement("td", {
+      style: {
+        padding: "9px 14px",
+        color: C.textMuted,
+        whiteSpace: "nowrap"
+      }
+    }, u.topProduct, " ", React.createElement("span", {
+      style: {
+        color: C.textDim
+      }
+    }, "(", fmt0(u.topProductSpend), ")")), React.createElement("td", {
+      style: {
+        padding: "9px 14px"
+      }
+    }, u.flags.length ? u.flags.map(f => React.createElement(FlagPill, {
+      key: f,
+      type: f
+    })) : React.createElement("span", {
+      style: {
+        color: C.textDim
+      }
+    }, "—"))), isOpen && React.createElement("tr", null, React.createElement("td", {
+      colSpan: 10,
+      style: {
+        padding: 0,
+        borderBottom: `1px solid ${C.border}`
+      }
+    }, React.createElement(UserDetail, {
+      u: u
+    }))));
+  })))));
+}
+function TrendChart({
+  title,
+  months,
+  pick,
+  color,
+  fmtFn
+}) {
+  const vals = months.map(pick);
+  const max = Math.max(...vals, 1);
+  const W = 520,
+    H = 150,
+    pad = 34;
+  const n = months.length;
+  const x = i => pad + (n === 1 ? (W - 2 * pad) / 2 : i * (W - 2 * pad) / (n - 1));
+  const y = v => H - pad - v / max * (H - 2 * pad);
+  const pts = vals.map((v, i) => `${x(i)},${y(v)}`).join(" ");
+  return React.createElement("div", {
+    style: {
+      background: C.card,
+      border: `1px solid ${C.border}`,
+      borderRadius: 12,
+      padding: 18,
+      flex: "1 1 380px"
+    }
+  }, React.createElement("div", {
+    style: {
+      fontWeight: 600,
+      fontSize: 14,
+      marginBottom: 10
+    }
+  }, title), React.createElement("svg", {
+    viewBox: `0 0 ${W} ${H}`,
+    style: {
+      width: "100%",
+      height: "auto"
+    }
+  }, React.createElement("line", {
+    x1: pad,
+    y1: H - pad,
+    x2: W - pad,
+    y2: H - pad,
+    stroke: C.border
+  }), React.createElement("polyline", {
+    points: pts,
+    fill: "none",
+    stroke: color,
+    strokeWidth: 2.5
+  }), vals.map((v, i) => React.createElement("g", {
+    key: i
+  }, React.createElement("circle", {
+    cx: x(i),
+    cy: y(v),
+    r: 4,
+    fill: color
+  }), React.createElement("text", {
+    x: x(i),
+    y: y(v) - 10,
+    textAnchor: "middle",
+    fontSize: 11,
+    fill: C.text,
+    fontWeight: "600"
+  }, fmtFn(v)), React.createElement("text", {
+    x: x(i),
+    y: H - pad + 16,
+    textAnchor: "middle",
+    fontSize: 10,
+    fill: C.textMuted
+  }, months[i].monthOf.replace(" 2026", ""))))));
+}
+function TrendsTab() {
+  const months = DATA.history.months;
+  if (months.length < 2) {
+    return React.createElement("div", {
+      style: {
+        background: C.card,
+        border: `1px solid ${C.border}`,
+        borderRadius: 12,
+        padding: 40,
+        textAlign: "center",
+        color: C.textMuted
+      }
+    }, "Trends activate once 2+ months of history exist.");
+  }
+  return React.createElement("div", null, React.createElement("div", {
+    style: {
+      fontSize: 13,
+      color: C.textMuted,
+      marginBottom: 14
+    }
+  }, "Month-over-month across ", months.map(m => m.monthOf.replace(" 2026", "")).join(" · "), "."), React.createElement("div", {
+    style: {
+      display: "flex",
+      gap: 16,
+      flexWrap: "wrap",
+      marginBottom: 16
+    }
+  }, React.createElement(TrendChart, {
+    title: "Total org spend",
+    months: months,
+    pick: m => m.totalSpend,
+    color: C.accent,
+    fmtFn: fmt0
+  }), React.createElement(TrendChart, {
+    title: "Active users",
+    months: months,
+    pick: m => m.activeUsers,
+    color: C.green,
+    fmtFn: v => String(v)
+  })), React.createElement("div", {
+    style: {
+      display: "flex",
+      gap: 16,
+      flexWrap: "wrap",
+      marginBottom: 16
+    }
+  }, React.createElement(TrendChart, {
+    title: "Avg spend / user",
+    months: months,
+    pick: m => m.avgSpend,
+    color: C.orange,
+    fmtFn: fmt0
+  }), React.createElement(TrendChart, {
+    title: "Opus spend",
+    months: months,
+    pick: m => m.opusSpend,
+    color: C.purple,
+    fmtFn: fmt0
+  })), React.createElement("div", {
+    style: {
+      background: C.card,
+      border: `1px solid ${C.border}`,
+      borderRadius: 12,
+      overflow: "hidden"
+    }
+  }, React.createElement("div", {
+    style: {
+      padding: "12px 18px",
+      borderBottom: `1px solid ${C.border}`,
+      fontWeight: 600,
+      fontSize: 14
+    }
+  }, "Month detail"), React.createElement("div", {
+    style: {
+      overflowX: "auto"
+    }
+  }, React.createElement("table", {
+    style: {
+      width: "100%",
+      borderCollapse: "collapse",
+      fontSize: 13
+    }
+  }, React.createElement("thead", null, React.createElement("tr", {
+    style: {
+      color: C.textMuted,
+      fontSize: 11,
+      textTransform: "uppercase",
+      letterSpacing: "0.04em"
+    }
+  }, ["Month", "Total spend", "Users", "Avg/user", "Sonnet", "Opus", "Haiku", "Legacy flags", "Cowork→Opus"].map((h, i) => React.createElement("th", {
+    key: h,
+    style: {
+      textAlign: i === 0 ? "left" : "right",
+      padding: "9px 14px",
+      fontWeight: 600,
+      borderBottom: `1px solid ${C.border}`
+    }
+  }, h)))), React.createElement("tbody", null, months.map(m => React.createElement("tr", {
+    key: m.monthOf,
+    style: {
+      borderBottom: `1px solid ${C.border}`
+    }
+  }, React.createElement("td", {
+    style: {
+      padding: "9px 14px",
+      fontWeight: 600
+    }
+  }, m.monthOf), React.createElement("td", {
+    style: {
+      padding: "9px 14px",
+      textAlign: "right"
+    }
+  }, fmt0(m.totalSpend)), React.createElement("td", {
+    style: {
+      padding: "9px 14px",
+      textAlign: "right",
+      color: C.textMuted
+    }
+  }, m.activeUsers), React.createElement("td", {
+    style: {
+      padding: "9px 14px",
+      textAlign: "right",
+      color: C.textMuted
+    }
+  }, fmt0(m.avgSpend)), React.createElement("td", {
+    style: {
+      padding: "9px 14px",
+      textAlign: "right",
+      color: C.textMuted
+    }
+  }, fmt0(m.sonnetSpend)), React.createElement("td", {
+    style: {
+      padding: "9px 14px",
+      textAlign: "right",
+      color: C.purple
+    }
+  }, fmt0(m.opusSpend)), React.createElement("td", {
+    style: {
+      padding: "9px 14px",
+      textAlign: "right",
+      color: C.textMuted
+    }
+  }, fmt0(m.haikuSpend)), React.createElement("td", {
+    style: {
+      padding: "9px 14px",
+      textAlign: "right",
+      color: C.textMuted
+    }
+  }, m.flagCounts.legacy), React.createElement("td", {
+    style: {
+      padding: "9px 14px",
+      textAlign: "right",
+      color: C.textMuted
+    }
+  }, m.flagCounts.coworkOpus))))))));
+}
+function FlagUserRow({
+  left,
+  right
+}) {
+  return React.createElement("div", {
+    style: {
+      display: "flex",
+      justifyContent: "space-between",
+      alignItems: "center",
+      padding: "9px 18px",
+      borderBottom: `1px solid ${C.border}`,
+      fontSize: 13
+    }
+  }, React.createElement("div", null, left), React.createElement("div", {
+    style: {
+      color: C.textMuted,
+      textAlign: "right",
+      whiteSpace: "nowrap"
+    }
+  }, right));
+}
+function FlagsTab() {
+  const d = DATA;
+  return React.createElement("div", null, React.createElement(CollapseCard, {
+    icon: "🔴",
+    title: "Max plan — Confirmed (≥ $800/mo)",
+    count: d.maxPlanConfirmed.length,
+    color: C.red,
+    soft: C.redSoft
+  }, d.maxPlanConfirmed.map(u => React.createElement(FlagUserRow, {
+    key: u.email,
+    left: React.createElement(React.Fragment, null, React.createElement("strong", null, u.name), " ", React.createElement("span", {
+      style: {
+        color: C.textDim,
+        fontSize: 11
+      }
+    }, u.email)),
+    right: fmt(u.monthlySpend) + "/mo"
+  }))), React.createElement(CollapseCard, {
+    icon: "🟠",
+    title: "Max plan — Approaching ($400–799/mo)",
+    count: d.maxPlanApproaching.length,
+    color: C.orange,
+    soft: C.orangeSoft,
+    defaultOpen: false
+  }, d.maxPlanApproaching.map(u => React.createElement(FlagUserRow, {
+    key: u.email,
+    left: React.createElement(React.Fragment, null, React.createElement("strong", null, u.name), " ", React.createElement("span", {
+      style: {
+        color: C.textDim,
+        fontSize: 11
+      }
+    }, u.email)),
+    right: fmt(u.monthlySpend) + "/mo · ~" + fmt0(u.avgWeekly) + "/wk"
+  }))), React.createElement(CollapseCard, {
+    icon: "⚙️",
+    title: "Cowork → Opus (highest-priority automated cost)",
+    count: d.coworkOpus.length,
+    color: C.orange,
+    soft: C.orangeSoft
+  }, d.coworkOpus.map(u => React.createElement(FlagUserRow, {
+    key: u.email,
+    left: React.createElement(React.Fragment, null, React.createElement("strong", null, u.name), " ", React.createElement("span", {
+      style: {
+        color: C.textDim,
+        fontSize: 11
+      }
+    }, u.email)),
+    right: fmt(u.spend) + " Opus · " + fmtInt(u.requests) + " req"
+  }))), React.createElement(CollapseCard, {
+    icon: "🟣",
+    title: "Opus-heavy Chat (≥30% of Chat spend on Opus)",
+    count: d.opusHeavy.length,
+    color: C.purple,
+    soft: C.purpleSoft,
+    defaultOpen: false
+  }, d.opusHeavy.map(u => React.createElement(FlagUserRow, {
+    key: u.email,
+    left: React.createElement(React.Fragment, null, React.createElement("strong", null, u.name), " ", React.createElement("span", {
+      style: {
+        color: C.textDim,
+        fontSize: 11
+      }
+    }, u.email)),
+    right: u.opusPct + "% · " + fmt(u.opusSpend) + " of " + fmt(u.chatSpend)
+  }))), React.createElement(CollapseCard, {
+    icon: "🕰️",
+    title: "Legacy models (Sonnet ≤4.5 · Opus ≤4.5 · Haiku ≤4.4 · gen-3-or-older)",
+    count: d.legacyModels.length,
+    color: C.orange,
+    soft: C.orangeSoft
+  }, d.legacyModels.map(u => React.createElement(FlagUserRow, {
+    key: u.email,
+    left: React.createElement(React.Fragment, null, React.createElement("strong", null, u.name), " ", React.createElement("span", {
+      style: {
+        color: C.textDim,
+        fontSize: 11
+      }
+    }, u.email)),
+    right: fmt(u.spend) + " · " + u.models.map(m => m.replace("claude_", "").replace(/_\d{8}$/, "")).join(", ")
+  }))), React.createElement(CollapseCard, {
+    icon: "⚡",
+    title: "Power users (efficient benchmarks)",
+    count: d.powerUsers.length,
+    color: C.green,
+    soft: C.greenSoft,
+    defaultOpen: false
+  }, d.powerUsers.map(u => React.createElement(FlagUserRow, {
+    key: u.email,
+    left: React.createElement(React.Fragment, null, React.createElement("strong", null, u.name), " ", React.createElement("span", {
+      style: {
+        color: C.textDim,
+        fontSize: 11
+      }
+    }, u.email)),
+    right: fmtInt(u.requests) + " req · " + fmt(u.cpr) + "/req · " + u.opusPct + "% Opus"
+  }))), React.createElement("div", {
+    style: {
+      height: 8
+    }
+  }), React.createElement("div", {
+    style: {
+      borderTop: `2px dashed ${C.border}`,
+      paddingTop: 18
+    }
+  }, React.createElement("div", {
+    style: {
+      display: "flex",
+      alignItems: "center",
+      gap: 8,
+      marginBottom: 10
+    }
+  }, React.createElement("span", {
+    style: {
+      fontSize: 12,
+      fontWeight: 700,
+      color: C.cyan,
+      background: C.cyanSoft,
+      padding: "3px 10px",
+      borderRadius: 12
+    }
+  }, "ENGAGEMENT, NOT COST")), React.createElement(CollapseCard, {
+    icon: "💤",
+    title: "Low engagement (< $40/mo)",
+    count: d.lowEngagement.length,
+    color: C.cyan,
+    soft: C.cyanSoft,
+    defaultOpen: false
+  }, React.createElement("div", {
+    style: {
+      padding: "10px 18px",
+      fontSize: 12,
+      color: C.textMuted,
+      borderBottom: `1px solid ${C.border}`,
+      background: C.cyanSoft
+    }
+  }, "This is an engagement signal, not a cost problem. Monthly low-engagement DMs are drafted for manual review only and are never bulk-sent. None are DM-eligible this run — cross-month persistence data isn't available yet."), d.lowEngagement.slice(0, 40).map(u => React.createElement(FlagUserRow, {
+    key: u.email,
+    left: React.createElement(React.Fragment, null, React.createElement("strong", null, u.name), " ", React.createElement("span", {
+      style: {
+        color: C.textDim,
+        fontSize: 11
+      }
+    }, u.email)),
+    right: fmt(u.spend) + " · " + fmtInt(u.requests) + " req"
+  })), d.lowEngagement.length > 40 && React.createElement("div", {
+    style: {
+      padding: "9px 18px",
+      fontSize: 12,
+      color: C.textDim
+    }
+  }, "+ ", d.lowEngagement.length - 40, " more"))));
+}
+function BreakdownsTab() {
+  const products = DATA.products;
+  const models = DATA.models;
+  const pMax = Math.max(...products.map(p => p.spend), 1);
+  const mMax = Math.max(...models.map(m => m.spend), 1);
+  return React.createElement("div", {
+    style: {
+      display: "flex",
+      gap: 16,
+      flexWrap: "wrap"
+    }
+  }, React.createElement("div", {
+    style: {
+      background: C.card,
+      border: `1px solid ${C.border}`,
+      borderRadius: 12,
+      overflow: "hidden",
+      flex: "1 1 380px"
+    }
+  }, React.createElement("div", {
+    style: {
+      padding: "12px 18px",
+      borderBottom: `1px solid ${C.border}`,
+      fontWeight: 600,
+      fontSize: 14
+    }
+  }, "Spend by product"), React.createElement("table", {
+    style: {
+      width: "100%",
+      borderCollapse: "collapse",
+      fontSize: 13
+    }
+  }, React.createElement("tbody", null, products.map(p => React.createElement("tr", {
+    key: p.name,
+    style: {
+      borderBottom: `1px solid ${C.border}`
+    }
+  }, React.createElement("td", {
+    style: {
+      padding: "9px 18px",
+      color: C.text
+    }
+  }, p.name), React.createElement("td", {
+    style: {
+      padding: "9px 10px",
+      width: 120
+    }
+  }, React.createElement(Bar, {
+    pct: p.spend / pMax * 100,
+    color: C.accent
+  })), React.createElement("td", {
+    style: {
+      padding: "9px 18px",
+      textAlign: "right",
+      fontWeight: 600,
+      whiteSpace: "nowrap"
+    }
+  }, fmt(p.spend)), React.createElement("td", {
+    style: {
+      padding: "9px 18px",
+      textAlign: "right",
+      color: C.textDim
+    }
+  }, fmtInt(p.requests), " req")))))), React.createElement("div", {
+    style: {
+      background: C.card,
+      border: `1px solid ${C.border}`,
+      borderRadius: 12,
+      overflow: "hidden",
+      flex: "1 1 380px"
+    }
+  }, React.createElement("div", {
+    style: {
+      padding: "12px 18px",
+      borderBottom: `1px solid ${C.border}`,
+      fontWeight: 600,
+      fontSize: 14
+    }
+  }, "Spend by model"), React.createElement("table", {
+    style: {
+      width: "100%",
+      borderCollapse: "collapse",
+      fontSize: 13
+    }
+  }, React.createElement("tbody", null, models.map(m => React.createElement("tr", {
+    key: m.name,
+    style: {
+      borderBottom: `1px solid ${C.border}`
+    }
+  }, React.createElement("td", {
+    style: {
+      padding: "9px 18px",
+      color: C.text
+    }
+  }, m.display, m.legacy && React.createElement("span", {
+    style: {
+      marginLeft: 6,
+      fontSize: 10,
+      fontWeight: 700,
+      color: C.orange,
+      background: C.orangeSoft,
+      padding: "1px 6px",
+      borderRadius: 5
+    }
+  }, "LEGACY")), React.createElement("td", {
+    style: {
+      padding: "9px 10px",
+      width: 120
+    }
+  }, React.createElement(Bar, {
+    pct: m.spend / mMax * 100,
+    color: m.legacy ? C.orange : C.accent
+  })), React.createElement("td", {
+    style: {
+      padding: "9px 18px",
+      textAlign: "right",
+      fontWeight: 600,
+      whiteSpace: "nowrap"
+    }
+  }, fmt(m.spend)), React.createElement("td", {
+    style: {
+      padding: "9px 18px",
+      textAlign: "right",
+      color: C.textDim
+    }
+  }, fmtInt(m.requests), " req")))))));
+}
+function Dashboard() {
+  const [tab, setTab] = useState("overview");
+  const TABS = TABS_BASE.slice();
+  const s = DATA.summary;
+  const flagTotal = DATA.maxPlanConfirmed.length + DATA.maxPlanApproaching.length + DATA.coworkOpus.length + DATA.opusHeavy.length + DATA.legacyModels.length;
+  return React.createElement("div", {
+    style: {
+      background: C.bg,
+      color: C.text,
+      minHeight: "100vh",
+      fontFamily: "'Inter', -apple-system, BlinkMacSystemFont, sans-serif"
+    }
+  }, React.createElement("link", {
+    href: "https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap",
+    rel: "stylesheet"
+  }), React.createElement("div", {
+    style: {
+      maxWidth: 1180,
+      margin: "0 auto",
+      padding: "24px 20px 60px"
+    }
+  }, React.createElement("div", {
+    style: {
+      display: "flex",
+      alignItems: "center",
+      gap: 12,
+      marginBottom: 4,
+      flexWrap: "wrap"
+    }
+  }, React.createElement("h1", {
+    style: {
+      fontSize: 22,
+      fontWeight: 800,
+      margin: 0,
+      letterSpacing: "-0.02em"
+    }
+  }, "Claude Usage — ", s.monthOf), React.createElement("span", {
+    style: {
+      background: C.accent,
+      color: "#fff",
+      fontSize: 11,
+      fontWeight: 700,
+      padding: "3px 10px",
+      borderRadius: 12,
+      letterSpacing: "0.04em"
+    }
+  }, "MONTHLY"), React.createElement("span", {
+    style: {
+      marginLeft: "auto",
+      fontSize: 12,
+      color: C.textDim
+    }
+  }, "Level Agency · ", fmtInt(s.activeUsers), " users · ", fmt0(s.totalSpend))), React.createElement("div", {
+    style: {
+      fontSize: 13,
+      color: C.textMuted,
+      marginBottom: 18
+    }
+  }, "Full-month reporting. ", flagTotal, " cost flags · ", DATA.lowEngagement.length, " low-engagement (engagement signal, not cost)."), React.createElement("div", {
+    style: {
+      display: "flex",
+      gap: 4,
+      borderBottom: `1px solid ${C.border}`,
+      marginBottom: 22,
+      flexWrap: "wrap"
+    }
+  }, TABS.map(t => React.createElement("button", {
+    key: t.id,
+    onClick: () => setTab(t.id),
+    style: {
+      background: "none",
+      border: "none",
+      borderBottom: tab === t.id ? `2px solid ${C.accent}` : "2px solid transparent",
+      color: tab === t.id ? C.accent : C.textMuted,
+      fontSize: 13,
+      fontWeight: 600,
+      padding: "10px 14px",
+      cursor: "pointer",
+      marginBottom: -1
+    }
+  }, t.label))), tab === "overview" && React.createElement(OverviewTab, null), tab === "leaderboard" && React.createElement(LeaderboardTab, null), tab === "allusers" && React.createElement(AllUsersTab, null), tab === "trends" && React.createElement(TrendsTab, null), tab === "flags" && React.createElement(FlagsTab, null), tab === "breakdown" && React.createElement(BreakdownsTab, null)));
+}
+</script>
+<script>
+(function(){
+  var useState = React.useState, useMemo = React.useMemo, useEffect = React.useEffect;
+  fetch("data.json", { cache: "no-store" })
+    .then(function(r){ if(!r.ok) throw new Error("data.json HTTP " + r.status); return r.json(); })
+    .then(function(json){
+      window.__APP_DATA__ = json;
+      var code = document.getElementById("appsrc").textContent;
+      // Evaluate compiled component after data is present.
+      (0, eval)(code);
+      var root = ReactDOM.createRoot(document.getElementById("root"));
+      root.render(React.createElement(Dashboard));
+    })
+    .catch(function(err){
+      document.getElementById("root").innerHTML =
+        '<div class="boot">Failed to load data.json: ' + (err && err.message ? err.message : err) + '</div>';
+    });
+})();
 </script>
 </body>
 </html>

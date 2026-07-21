@@ -88,6 +88,42 @@
         "totalRequests": "confirmed from CSV",
         "legacy": "38 users with legacySpend > 0; 6 were DM-eligible (\u2265$400, not on skip list)"
       }
+    },
+    {
+      "monthOf": "June 2026",
+      "monthStartISO": "2026-06-01",
+      "totalSpend": 30625.1,
+      "activeUsers": 237,
+      "avgSpend": 129.22,
+      "totalRequests": 232492,
+      "sonnetSpend": 21325.48,
+      "opusSpend": 8910.0,
+      "haikuSpend": 135.32,
+      "flagCounts": {
+        "maxPlanConfirmed": 3,
+        "maxPlanApproaching": 15,
+        "coworkOpus": 12,
+        "opusHeavy": 58,
+        "tokenDensity": 0,
+        "legacy": 9,
+        "lowEngagement": 90
+      },
+      "productSpend": {
+        "Chat": 19303.04,
+        "Cowork": 5780.51,
+        "Claude Code": 3565.72,
+        "Claude Design": 1139.2,
+        "Claude in Chrome": 836.63,
+        "Claude Tag": 0.0,
+        "Research": 0.0
+      },
+      "cacheHitRate": 90.3,
+      "_notes": {
+        "model_split": "confirmed from CSV direct aggregation",
+        "product_split": "confirmed from CSV",
+        "totalRequests": "confirmed from CSV",
+        "otherSpend (fable/no-model)": 254.3
+      }
     }
   ]
 }
