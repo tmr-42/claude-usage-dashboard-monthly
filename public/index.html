@@ -1610,21 +1610,39 @@ function Dashboard() {
 </script>
 <script>
 (function(){
-  var useState = React.useState, useMemo = React.useMemo, useEffect = React.useEffect;
+  function fail(msg){
+    document.getElementById("root").innerHTML =
+      '<div class="boot">Failed to load report: ' + msg + '</div>';
+  }
+  // Guard: React globals must be present (CDN reachable).
+  if (typeof React === "undefined" || typeof ReactDOM === "undefined") {
+    return fail("React failed to load (check network access to unpkg.com)");
+  }
+  function mount(json){
+    window.__APP_DATA__ = json;
+    // Inject the component as a REAL top-level script. Declarations (Dashboard,
+    // hook aliases) become true globals — no eval, no IIFE-scope mismatch, and
+    // no reliance on unsafe-eval (some CSPs block it). Runs synchronously on append.
+    var pre = "var useState=React.useState,useMemo=React.useMemo,useEffect=React.useEffect,"
+            + "useRef=React.useRef,useCallback=React.useCallback,Fragment=React.Fragment;\n";
+    var s = document.createElement("script");
+    s.textContent = pre + document.getElementById("appsrc").textContent
+                  + "\ntry{window.__Dashboard=Dashboard;}catch(e){window.__bootErr=e&&e.message;}";
+    document.body.appendChild(s);
+    if (typeof window.__Dashboard !== "function") {
+      return fail("component did not initialize" + (window.__bootErr ? " (" + window.__bootErr + ")" : ""));
+    }
+    try {
+      var root = ReactDOM.createRoot(document.getElementById("root"));
+      root.render(React.createElement(window.__Dashboard));
+    } catch (e) {
+      return fail("render error: " + (e && e.message ? e.message : e));
+    }
+  }
   fetch("data.json", { cache: "no-store" })
     .then(function(r){ if(!r.ok) throw new Error("data.json HTTP " + r.status); return r.json(); })
-    .then(function(json){
-      window.__APP_DATA__ = json;
-      var code = document.getElementById("appsrc").textContent;
-      // Evaluate compiled component after data is present.
-      (0, eval)(code);
-      var root = ReactDOM.createRoot(document.getElementById("root"));
-      root.render(React.createElement(Dashboard));
-    })
-    .catch(function(err){
-      document.getElementById("root").innerHTML =
-        '<div class="boot">Failed to load data.json: ' + (err && err.message ? err.message : err) + '</div>';
-    });
+    .then(mount)
+    .catch(function(err){ fail(err && err.message ? err.message : String(err)); });
 })();
 </script>
 </body>
