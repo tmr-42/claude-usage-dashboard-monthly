@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>Claude Usage — June 2026 (Monthly) · Level Agency</title>
+<title>Claude Usage — July 2026 (Monthly) · Level Agency</title>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
 <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
 <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
@@ -15,11 +15,10 @@
 </style>
 </head>
 <body>
-<div id="root"><div class="boot">Loading June 2026 report…</div></div>
+<div id="root"><div class="boot">Loading July 2026 report…</div></div>
 <script type="text/plain" id="appsrc">
 var DATA = window.__APP_DATA__;
 var ACTIONS_ENABLED = false;
-const SKIP_DM = new Set(["matt.rose@level.agency", "dave.brong@level.agency", "bill.buchanan@level.agency", "patrick.patterson@level.agency"]);
 const C = {
   bg: "#f7f7fb",
   card: "#ffffff",
@@ -39,7 +38,9 @@ const C = {
   green: "#16a34a",
   greenSoft: "#e9f7ee",
   cyan: "#0891b2",
-  cyanSoft: "#e6f4f8"
+  cyanSoft: "#e6f4f8",
+  fable: "#7c8aa8",
+  fableSoft: "#eef1f6"
 };
 const FLAG_META = {
   "max-plan": {
@@ -168,7 +169,7 @@ function Bar({
 function ModelBar({
   models
 }) {
-  const total = (models.opus || 0) + (models.sonnet || 0) + (models.haiku || 0);
+  const total = (models.opus || 0) + (models.sonnet || 0) + (models.haiku || 0) + (models.fable || 0);
   if (total <= 0) return React.createElement("div", {
     style: {
       height: 8
@@ -177,6 +178,7 @@ function ModelBar({
   const o = (models.opus || 0) / total * 100;
   const s = (models.sonnet || 0) / total * 100;
   const h = (models.haiku || 0) / total * 100;
+  const fb = (models.fable || 0) / total * 100;
   return React.createElement("div", {
     style: {
       display: "flex",
@@ -208,6 +210,13 @@ function ModelBar({
       minWidth: 2
     },
     title: `Haiku ${h.toFixed(0)}%`
+  }), fb > 0 && React.createElement("div", {
+    style: {
+      width: fb + "%",
+      background: C.fable,
+      minWidth: 2
+    },
+    title: `Fable ${fb.toFixed(0)}%`
   }));
 }
 function FlagPill({
@@ -289,7 +298,7 @@ function CollapseCard({
 function OverviewTab() {
   const s = DATA.summary;
   const fam = DATA.modelFamilySpend;
-  const famTotal = fam.opus + fam.sonnet + fam.haiku + fam.other;
+  const famTotal = fam.opus + fam.sonnet + fam.haiku + (fam.fable || 0) + fam.other;
   const pct = v => famTotal ? v / famTotal * 100 : 0;
   const products = DATA.products.filter(p => p.spend > 0);
   const maxProd = Math.max(...products.map(p => p.spend), 1);
@@ -344,7 +353,7 @@ function OverviewTab() {
       fontSize: 14,
       marginBottom: 14
     }
-  }, "Model mix (spend)"), [["Sonnet", fam.sonnet, C.accent], ["Opus", fam.opus, C.purple], ["Haiku", fam.haiku, C.green], ["Other (Fable)", fam.other, C.textDim]].map(([n, v, col]) => React.createElement("div", {
+  }, "Model mix (spend)"), [["Sonnet", fam.sonnet, C.accent], ["Opus", fam.opus, C.purple], ["Fable", fam.fable || 0, C.fable], ["Haiku", fam.haiku, C.green], ["Other", fam.other, C.textDim]].map(([n, v, col]) => React.createElement("div", {
     key: n,
     style: {
       marginBottom: 12
@@ -729,7 +738,7 @@ function UserDetail({
       marginBottom: 8
     }
   }, "Model mix"), u.modelMix.map(m => {
-    const col = m.name === "Opus" ? C.purple : m.name === "Sonnet" ? C.accent : m.name === "Haiku" ? C.green : C.textDim;
+    const col = m.name === "Opus" ? C.purple : m.name === "Sonnet" ? C.accent : m.name === "Haiku" ? C.green : m.name === "Fable" ? C.fable : C.textDim;
     return React.createElement("div", {
       key: m.name,
       style: {
@@ -1158,7 +1167,7 @@ function TrendsTab() {
       textTransform: "uppercase",
       letterSpacing: "0.04em"
     }
-  }, ["Month", "Total spend", "Users", "Avg/user", "Sonnet", "Opus", "Haiku", "Legacy flags", "Cowork→Opus"].map((h, i) => React.createElement("th", {
+  }, ["Month", "Total spend", "Users", "Avg/user", "Sonnet", "Opus", "Fable", "Haiku", "Legacy flags", "Cowork→Opus"].map((h, i) => React.createElement("th", {
     key: h,
     style: {
       textAlign: i === 0 ? "left" : "right",
@@ -1206,6 +1215,12 @@ function TrendsTab() {
       color: C.purple
     }
   }, fmt0(m.opusSpend)), React.createElement("td", {
+    style: {
+      padding: "9px 14px",
+      textAlign: "right",
+      color: C.fable
+    }
+  }, m.fableSpend == null ? "—" : fmt0(m.fableSpend)), React.createElement("td", {
     style: {
       padding: "9px 14px",
       textAlign: "right",

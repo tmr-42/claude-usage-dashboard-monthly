@@ -124,6 +124,44 @@
         "totalRequests": "confirmed from CSV",
         "otherSpend (fable/no-model)": 254.3
       }
+    },
+    {
+      "monthOf": "July 2026",
+      "monthStartISO": "2026-07-01",
+      "totalSpend": 48185.29,
+      "activeUsers": 241,
+      "avgSpend": 199.94,
+      "totalRequests": 413231,
+      "sonnetSpend": 29955.21,
+      "opusSpend": 13811.77,
+      "haikuSpend": 149.54,
+      "fableSpend": 4237.27,
+      "flagCounts": {
+        "maxPlanConfirmed": 11,
+        "maxPlanApproaching": 21,
+        "coworkOpus": 15,
+        "opusHeavy": 47,
+        "tokenDensity": 0,
+        "legacy": 3,
+        "lowEngagement": 77
+      },
+      "productSpend": {
+        "Chat": 26167.36,
+        "Claude Code": 10322.01,
+        "Cowork": 8874.21,
+        "Claude Design": 1608.8,
+        "Claude in Chrome": 1212.91,
+        "Claude Tag": 0.0,
+        "Research": 0.0
+      },
+      "cacheHitRate": 93.9,
+      "_notes": {
+        "model_split": "confirmed from CSV direct aggregation",
+        "product_split": "confirmed from CSV",
+        "totalRequests": "confirmed from CSV",
+        "otherSpend (no-model)": 31.5,
+        "fable": "Fable promoted to first-class family this month (was folded into 'other' Apr-Jun)"
+      }
     }
   ]
 }
